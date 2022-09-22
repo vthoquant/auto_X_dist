@@ -1,16 +1,8 @@
-beautifulsoup4==4.11.1
 flatten_dict==0.4.2
-ibapi==9.81.1
 matplotlib==3.3.2
-numba==0.51.2
 numpy==1.21.2
 pandas==1.3.2
 plotly==4.10.0
 py_vollib==1.0.1
 python_dateutil==2.8.2
-requests==2.26.0
-scikit_learn==1.1.2
-scikit_learn_intelex==2021.20210504.131156
-TA_Lib==0.4.19
-xgboost==0.90
 yfinance==0.1.63
