@@ -16,8 +16,8 @@ This repository contains:
 ## Table of Contents
 
 - [Setup](#setup)
-	- [Set directories and variables] (#set-directories-and-variables)
-	- [Install Packages] (#install-packages)
+	- [Set directories and variables](#set-directories-and-variables)
+	- [Install Packages](#install-packages)
 - [Running](#running)
 	- [Backtesting](#backtesting)
 	- [Optimization](#optimization)
