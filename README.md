@@ -50,6 +50,14 @@ $ conda install -c conda-forge ta-lib
 6. For the IB TWS API, install the *Stable TWI API* version available on [this](https://interactivebrokers.github.io/#) link. This should install the relevent code within a *C:\TWS API* folder in your local drive. Within this location you'd need to navigate inside the *source/pythonclient* folder using the usual *myenv*-enabled cmd.exe window. Open the README.md file available here and execute all the 3 commands listed out in the end of the document to sucessfully install the ibapi package 
 
 ## Running
+One can run any of the executable scripts available in the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder. More details on setting-up the parameters to be fed into the individual executables and executing them can be found in the later subsections. Would like to re-iterate however that **the user has to ensure that the executables are invoked under the *myenv* environemt only**
+
+Once the setup described above has been carried out one can verify that the code runs fine my navigating to the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder and running the *backtest.py* script with its default parameters
+1. please ensure that a folder with the name typed-out under the default argument for *--run_name* (which as of writing this document is *intraday-bkout-cstick*) in created in the *BASE_PATH/strategy_backtest/* folder. Recollect that BASE_PATH is the variable defined within the [directory_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) config. If the folder is incorrectly created or unavailable, one would receive an ERROR on executing the code.
+2. Execute the backtest using the following command from the *examples* directory
+```sh
+$ python backtest.py
+```
 
 ### Backtesting
 
@@ -58,10 +66,12 @@ $ conda install -c conda-forge ta-lib
 ### Live trading (IB)
 
 ## Maintainers
+This repo is owned and maintained by **Vivin Thomas**. In case of any concerns or queries regarding this project, help with any deployment, or additional development requests please feel free to contact me on my [linkedin] (https://www.linkedin.com/in/vivin-thomas-7885a2130)
 
 ## Contributing
+Please feel free to add to the configs and strategy files that are available for view and edit and issue any pull requests. For any contributions to be made to the compiled infrastructure code, please contact me on my [linkedin] (https://www.linkedin.com/in/vivin-thomas-7885a2130)
 
 ## License
 
-(LICENSE) © Vivin Thomas
+(LICENSE) © Vivin Thomas <br />
 Unauthorized distribution and access to restricted compiled code is prohibited
