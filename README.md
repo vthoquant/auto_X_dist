@@ -66,10 +66,10 @@ $ python backtest.py
 ### Live trading (IB)
 
 ## Maintainers
-This repo is owned and maintained by **Vivin Thomas**. In case of any concerns or queries regarding this project, help with any deployment, or additional development requests please feel free to contact me on my [linkedin] (https://www.linkedin.com/in/vivin-thomas-7885a2130)
+This repo is owned and maintained by **Vivin Thomas**. In case of any concerns or queries regarding this project, help with any deployment, or additional development requests please feel free to contact me on my [linkedin](https://www.linkedin.com/in/vivin-thomas-7885a2130)
 
 ## Contributing
-Please feel free to add to the configs and strategy files that are available for view and edit and issue any pull requests. For any contributions to be made to the compiled infrastructure code, please contact me on my [linkedin] (https://www.linkedin.com/in/vivin-thomas-7885a2130)
+Please feel free to add to the configs and strategy files that are available for view and edit and issue any pull requests. For any contributions to be made to the compiled infrastructure code, please contact me on my [linkedin](https://www.linkedin.com/in/vivin-thomas-7885a2130)
 
 ## License
 
