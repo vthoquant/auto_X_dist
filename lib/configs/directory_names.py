@@ -6,7 +6,7 @@ Created on Tue Sep 20 13:55:45 2022
 """
 
 BASE_PATH = "C:\\Users\\vivin\\Documents\\"
-IB_API_LOGS_STORE = "C:\\Users\\vivin\\Downloads\\"
+IB_API_LOGS_STORE = "{}strategy_backtest\\logs\\"
 LOCAL_INTRADAY_STORE_PATH = "{}strategy_backtest\\bardata_store\\".format(BASE_PATH)
 YF_CACHE_PATH = "{}strategy_backtest\\yf_cache\\".format(BASE_PATH)
 BARDATA_STORE_PATH = "{}strategy_backtest\\bardata_store\\".format(BASE_PATH)
