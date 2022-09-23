@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--run_name', default='intraday-bkout-cstick')
     parser.add_argument('--tickers')
     parser.add_argument('--start', default='2021-05-25')
-    parser.add_argument('--end', default='2022-08-21')
+    parser.add_argument('--end', default='2022-08-12')
     parser.add_argument('--interval', default='15min', type=str)
     parser.add_argument('--initial_capital', default=3000000, type=float)
     parser.add_argument('--tvt_ratio', default='0.0,1.0', type=str)
