@@ -32,12 +32,19 @@ You can either checkout the project or download and unzip the project into an ap
 
 ### Set directories and variables
 1. Firstly we would need to set the **PYTHONPATH** environment variable to reference our *project directory*. For more details on how to set a environment varaible, refer to [this](https://www.twilio.com/blog/2017/01/how-to-set-environment-variables.html) link. It would suffice to set a 'user variable' and not a 'system variable'
-2. Set the BASE_PATH variable in the [directory_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) config file to an appropriate location in your local C drive. The *directory_names.py* file stores names to directories performing either one of three requirements - (i)storage of logs, (ii)storage of price data and (iii)strategy-specific results directory. You can create appropriate subdirectories under the BASE_PATH for each of these 3 requirements as you deem fit
-3. The subfolder within the [test_data](https://github.com/vthoquant/auto_X_dist/tree/main/test_data/) folder (with all its associated data) can be moved to the directory defined under the BARDATA_STORE_PATH variable
+2. Set the **BASE_PATH** variable in the [directory_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) config file to an appropriate location in your local C drive. The *directory_names.py* file stores names to directories performing either one of three requirements - (i)storage of logs, (ii)storage of price data and (iii)strategy-specific results directory. You can create appropriate subdirectories under the **BASE_PATH** for each of these 3 requirements as you deem fit
+3. The subfolder within the [test_data](https://github.com/vthoquant/auto_X_dist/tree/main/test_data/) folder (with all its associated data) can be moved to the directory defined under the **BARDATA_STORE_PATH** variable
 
 ### Install packages
-1. Create a new python enviroment from scratch using either the environments tab on the **Anaconda Navigator** application or using the *conda* command on a cmd.exe prompt openened using the Aanconda Navigator. For more details on creating a new environment using the *conda* command refer to [this](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) article. Lets call this new environment *myenv*
-2. One needs to make sure that *myenv* is always activated prior to running any code within this project going forward
+1. Create a new python enviroment from scratch using the *conda* command on a cmd.exe prompt openened on the Aanconda Navigator. The current python versions supported are 3.7 and 3.8 and hence appropriate arguments need to be used while executing the conda command. Lets call this new environment *myenv*
+```sh
+$ conda create -n myenv python=3.8
+```
+For more details on creating a new environment using the *conda* command refer to [this](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) article. 
+2. One needs to make sure that *myenv* is always activated prior to running any code within this project going forward. On the cmd.exe opened via the **Anaconda Navigator** this can be achieved by executing the following command
+```sh
+$ conda activate myenv
+```
 3. Install all the external python packages required, listed out in the *requirements.txt* file using the *pip* command. 
 ```sh
 $ pip install -r requirements.txt
@@ -53,7 +60,7 @@ $ conda install -c conda-forge ta-lib
 One can run any of the executable scripts available in the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder. More details on setting-up the parameters to be fed into the individual executables and executing them can be found in the later subsections. Would like to re-iterate however that **the user has to ensure that the executables are invoked under the *myenv* environemt only**
 
 Once the setup described above has been carried out one can verify that the code runs fine my navigating to the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder and running the *backtest.py* script with its default parameters
-1. please ensure that a folder with the name typed-out under the default argument for *--run_name* (which as of writing this document is *intraday-bkout-cstick*) in created in the *BASE_PATH/strategy_backtest/* folder. Recollect that BASE_PATH is the variable defined within the [directory_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) config. If the folder is incorrectly created or unavailable, one would receive an ERROR on executing the code.
+1. please ensure that a folder with the name typed-out under the default argument for *--run_name* (which as of writing this document is *intraday-bkout-cstick*) in created in the *BASE_PATH/strategy_backtest/* folder. Recollect that **BASE_PATH** is the variable defined within the [directory_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) config. If the folder is incorrectly created or unavailable, one would receive an ERROR on executing the code.
 2. Execute the backtest using the following command from the *examples* directory
 ```sh
 $ python backtest.py
