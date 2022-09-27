@@ -22,6 +22,7 @@ This repository contains:
 	- [Backtesting](#backtesting)
 	- [Optimization](#optimization)
 	- [Live trading (IB)](#live-trading-(ib))
+- [Data format](#data-format)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [License](#license)
@@ -68,23 +69,48 @@ $ python backtest.py
 
 ### Backtesting
 The entry point for running backtesting is the [backtest.py](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/backtest.py) script within the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder. This backtest script has the following arguments which can be specified during its execution
-- *run_name*: The name provided for the specific backtest that is to be run. This name drives the class of startegy along-with its specific parameters on which the strategy is to be executed. The parameters corresponding to the *run_name* provided is specified in the [backtest_config.py](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/backtest_configs.py) file. 
+- *run_name*: The name provided for the specific backtest that is to be run. This name drives the class of strategy along-with its specific parameters on which the strategy is to be executed. The parameters corresponding to the *run_name* provided is specified in the [backtest_config.py](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/backtest_configs.py) file. 
 The variable **STRATEGY_BT_CONFIG_MAP** contains the collection of params for all strategies currently in the repository. Let us take the example of the default *run_name* on which the backtest is run i.e. *intraday-bkout-cstick*. We would need to lookup the key *intraday-bkout-cstick* within the **STRATEGY_BT_CONFIG_MAP** dictionary variable. We then need to look-up the value corresponding to the *intraday-bkout-cstick* key. This value
 is essentially another dictionary with 2 keys of its own - *strategy_name* and *params*. *strategy_name* is the name of the strategy class implementation. The entire list of enabled strategy classes can be found in the [strategy_mapper](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/strategy_mapper.py) config file. The second key is *params*. This is simply the collection of strategy attributes which are specific to the startegy specified under *strategy_name*. 
-For an existing strategy which the user requires to backtest with a different set of params, we could either edit the existing value variable corresponding to that strategy or create a new key-value pair within the **STRATEGY_BT_CONFIG_MAP** dictionary variable. For example the user could create a *intraday-bkout-cstick-1* variable with a new set of strategy params and execute the backtest.py file after assigning *run_name* as *intraday-bkout-cstick-1*
-- *tickers*: the srcip on which the backtest is meant to be run. Any non-FX scrip as of now needs to have '.NS' appended at the end. The supported scrips could be either equity indices such as *NIFTY50.NS*, *BANKNIFTY.NS*, or single stocks such as *RELIANCE.NS* or FX such as *USDINR* or *EURINR*. *ticker_names* also support special suffixes to denote whether the underlying data is referening a future (with suffixes such as *_M1*, *_M2* etc). 
- Multiple scrips are also supported by specifying them as a comma seperated string. For example, if I am interested to run a statistical arbitrage strategy which trades on the premium differences between the first and second month NIFTY futures, I could specify the *tickers* argument as *NIFTY50_M1.NS,NIFTY50_M2.NS*
+For an existing strategy which the user requires to backtest with a different set of params, we could either edit the existing value variable corresponding to that strategy or create a new key-value pair within the **STRATEGY_BT_CONFIG_MAP** dictionary variable. For example the user could create a *intraday-bkout-cstick-1* variable with a new set of strategy params and execute the backtest.py file after assigning *run_name* as *intraday-bkout-cstick-1* if they wanted to run the backtest on a new set of parameters instead
+- *tickers*: the srcip on which the backtest is meant to be run. Any non-FX scrip as of now needs to have '.NS' appended at the end. The supported scrips could be either equity indices such as *NIFTY50.NS*, *BANKNIFTY.NS*, or single stocks such as *RELIANCE.NS* or FX such as *USDINR* or *EURINR*. *ticker_names* also support special suffixes to denote whether the underlying data is referencing a future (with suffixes such as *_M1*, *_M2* etc). 
+ Multiple scrips are also supported by specifying them as a comma seperated string. For example, if I am interested to run a statistical arbitrage strategy which trades on the premium differences between the first and second month NIFTY futures, I could specify the *tickers* argument as *NIFTY50_M1.NS,NIFTY50_M2.NS*. If left unspecified the default value for this argument is taken as 'NIFTY50.NS'
 - *start*: the start date for the backtest to run specified in 'YYYY-MM-DD' format
 - *end*: the end date for the backtesting specified in 'YYYY-MM-DD' format
 - *interval*: the candlestick duration for the backtesst. Can be specified as '1min', '5min', '15min' or '1H', '1D' etc
-- *initial_capital*: The absolute value of the underlying index/stock that has to be traded. Please note that this is the notional value so in the case of options trading this would correspond to the notional value of the underlying stock/index and not premium/margin 
+- *initial_capital*: The absolute value of the underlying index/stock that has to be traded. Please note that this is the notional value so in the case of options trading this would correspond to the notional value of the underlying stock/index and not the premium or margin 
+
+An example execution can look like the one below
+```sh
+$ python backtest.py --run_name=intraday-pullback --tickers=BANKNIFTY.NS --start=2021-06-21 --end=2022-06-20 --interval=30min --initial_capital=10000000
+```
 
 The script once executed with the appropriate arguments is going to generate a tick-by-tick '-algo' file with information as to when exactly the signals were generated, position sizes etc and a '-bt' file with the performance metrics of the backtested strategy including hit ratios, avg returns, FDD, MAR, sharpe, annualized reutrns etc. The two files are going to be saved in the directory specified within the [direcotry_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) file, under the **STRATEGY_RUN_BASE_PATHS** variable against the key corresponding to the strategy class name.
-So for example the *intraday-bkout-cstick* backtest run has been setup for a strategy having the class name **INTRADAY_BREAKOUT_CSTICK** as can be seen in the [backtest_configs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/backtest_configs.py) file discussed earlier. So we need to note the folder name against this clss name as defined within the *directory_names* config and we need to ensure that that particular folder already exists else we would encounter a write error once the run is complete. 
+So for example the *intraday-bkout-cstick* backtest run has been setup for a strategy having the class name **INTRADAY_BREAKOUT_CSTICK** as can be seen in the [backtest_configs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/backtest_configs.py) file discussed earlier. So we need to note the folder name against this class name as defined within the *directory_names* config and we need to ensure that that particular folder already exists else we would encounter a write error once the run is complete. 
 
 ### Optimization
+The entry point for running optimization is the [optimize.py](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/optimize.py) script within the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder. This optimize script has the following arguments which can be specified during its execution
+- *strategy_name*: The class name of the strategy on which we would like to run our optimization. As mentioned in the previous section, the class names of the different strategies currently in our repository can be found in the [strategy_mapper](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/strategy_mapper.py) config file. The strategy class name is what drives the sample-set of parameter combinations on which the optimization is going to be run on unlike a *run_name* in the backtest. The idea is that there is supposed to be just a single optimization parameter-set configuration per strategy as against multiple potential parameters per strategy that one can backtest on. 
+The parameter combination sample-set on which the optimization is to run on every strategy is defined within the [optimizer_configs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/optimizer_configs.py) file. Let us consider the default parameter assigned to *strategy_name* in the optimize.py script, **INTRADAY_OVERTRADE_RSI_CSTICK_REV**. We need to circle back to the optimizer_configs file and refer to the **STRATEGY_OPT_CONFIG_MAP** variable within which we need to find the *'INTRADAY_OVERTRADE_RSI_CSTICK_REV'* key. Then we refer to the variable corresponding to that key. We observe that the variable in turn in a dictionary with keys which correspond to the parameters
+for that strategy. however the values corresponding to each of those keys are not single values but rather multiple values contained within a list. The set of configuration combinations on which the optimization would be run is a cross product over each of the parameter lists.  
+- *run_name*: The name provided to the specific optimization run. Please note that unlike the backtest script the *run_name* argument here doesn't hold any special significance apart from just being a name against which the output files would be stored. Once the optimization is run, the optimization file would be stored in the same 'strategy-specific' folder as we had discussed above, having the run_name appended with the suffix '-optres'.  
+- *tickers*: *<same as the corresponding argument used for the backtest>*
+- *start*: *<same as the corresponding argument used for the backtest>*
+- *end*: *<same as the corresponding argument used for the backtest>*
+- *interval*: *<same as the corresponding argument used for the backtest>*
+- *initial_capital*: *<same as the corresponding argument used for the backtest>*
+
+An example execution can look like the one below
+```sh
+$ python optimize.py --run_name=intraday-pullback-test --strategy_name=INTRADAY_PULLBACK --tickers=BANKNIFTY.NS --start=2021-06-21 --end=2022-06-20 --interval=30min --initial_capital=10000000
+```
+
+The script once executed with the appropriate arguments is going to generate a file with '-optres' appended to the *run_name*. So in this case the optimization output would be saved into a file named *intraday_otrade_test-optres.csv*. The file is going to be saved in the directory specified within the [direcotry_names](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/directory_names.py) file, under the **STRATEGY_RUN_BASE_PATHS** variable against the key corresponding to the strategy class name.
+The '-optres' file generated as an output of optimization is similar in structure to the '-bt' file generated during the backtesting. The '-optres' csv file would contain the performance metrics of each and every one of the parameter configuration run for this particular strategy. It would be trivial post the generation of this csv file to sort on Sharpe or MAR or annualized returns and obtain the most optimal configuration on which to trade on
 
 ### Live trading (IB)
+
+## Data format
 
 ## Maintainers
 This repo is owned and maintained by **Vivin Thomas**. In case of any concerns or queries regarding this project, help with any deployment, or additional development requests please feel free to contact me on my [linkedin](https://www.linkedin.com/in/vivin-thomas-7885a2130)
