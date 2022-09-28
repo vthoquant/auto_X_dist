@@ -66,6 +66,12 @@ Once the setup described above has been carried out one can verify that the code
 ```sh
 $ python backtest.py
 ```
+Details on how to run each of the executables can be found in the following sections. <br />
+
+**IMPORTANT! Always ensure that the scripts are executed from within the *myenv* conda environment by activating it on the cmd.exe window opened via Anaconda Navigator using the following command**
+```sh
+$ conda activate myenv
+```
 
 ### Backtesting
 The entry point for running backtesting is the [backtest.py](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/backtest.py) script within the [examples](https://github.com/vthoquant/auto_X_dist/tree/main/lib/examples) folder. This backtest script has the following arguments which can be specified during its execution
@@ -94,11 +100,11 @@ The entry point for running optimization is the [optimize.py](https://github.com
 The parameter combination sample-set on which the optimization is to run on every strategy is defined within the [optimizer_configs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/optimizer_configs.py) file. Let us consider the default parameter assigned to *strategy_name* in the optimize.py script, **INTRADAY_OVERTRADE_RSI_CSTICK_REV**. We need to circle back to the optimizer_configs file and refer to the **STRATEGY_OPT_CONFIG_MAP** variable within which we need to find the *'INTRADAY_OVERTRADE_RSI_CSTICK_REV'* key. Then we refer to the variable corresponding to that key. We observe that the variable in turn in a dictionary with keys which correspond to the parameters
 for that strategy. however the values corresponding to each of those keys are not single values but rather multiple values contained within a list. The set of configuration combinations on which the optimization would be run is a cross product over each of the parameter lists.  
 - *run_name*: The name provided to the specific optimization run. Please note that unlike the backtest script the *run_name* argument here doesn't hold any special significance apart from just being a name against which the output files would be stored. Once the optimization is run, the optimization file would be stored in the same 'strategy-specific' folder as we had discussed above, having the run_name appended with the suffix '-optres'.  
-- *tickers*: *<same as the corresponding argument used for the backtest>*
-- *start*: *<same as the corresponding argument used for the backtest>*
-- *end*: *<same as the corresponding argument used for the backtest>*
-- *interval*: *<same as the corresponding argument used for the backtest>*
-- *initial_capital*: *<same as the corresponding argument used for the backtest>*
+- *tickers*: *\<same as the corresponding argument used for the backtest\>*
+- *start*: *\<same as the corresponding argument used for the backtest\>*
+- *end*: *\<same as the corresponding argument used for the backtest\>*
+- *interval*: *\<same as the corresponding argument used for the backtest\>*
+- *initial_capital*: *\<same as the corresponding argument used for the backtest\>*
 
 An example execution can look like the one below
 ```sh
@@ -109,6 +115,42 @@ The script once executed with the appropriate arguments is going to generate a f
 The '-optres' file generated as an output of optimization is similar in structure to the '-bt' file generated during the backtesting. The '-optres' csv file would contain the performance metrics of each and every one of the parameter configuration run for this particular strategy. It would be trivial post the generation of this csv file to sort on Sharpe or MAR or annualized returns and obtain the most optimal configuration on which to trade on
 
 ### Live trading (IB)
+There are 2 entry points for running live trading on IB(Interactive brokers) - [run_live_ib](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/run_live_ib.py) and [run_live_ib_multi](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/run_live_ib_multi.py). For now we'll focus on the former and highlight the differences between the two towards the end. The following arguments can be specified during the execution of the [run_live_ib](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/run_live_ib.py) script
+- *run_name*: The name corresponding to the configuration set which is to be run on your IB account. Details of the specific configuration set can be found in the [ib_configs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/ib_configs.py) file. Let us take an example of the default *run_name* parameter, *intraday-macd-usdinr*. We lookup the keys of **STRATEGY_IB_CONFIG_MAP** for the *'intraday-macd-usdinr'* key within the ib_configs file. The value corresponding to that key is the configuration set on which the strategy is going to be run.
+Given that the IB configuration set is quite extensive, we devote an entire [subsection](#ib-configs) below for its description
+- *tickers*: *\<same as the corresponding argument used for the backtest\>*
+- *initial_capital*: *\<same as the corresponding argument used for the backtest\>*
+
+The [run_live_ib_multi](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/run_live_ib_multi.py) executable is more or less the same as the run_live_ib.py executable with the exception of one argument. *run_name* is replaced by *main_run_name* as the intention of this executable is actually to run multiple *'run_name'*s if they all depend on the same marketdata. The 'multi-run' configuration details can also be found by looking up the **STRATEGY_IB_CONFIG_MAP** variable in the ib_configs file. <br />
+
+The script once executed is going to wait for the market open and then download all the historical data as specified within the run config. It is then going to generate signals and orders with every new candlestick that is received. This will go on until close of market after which each strategy would save-down 2 files into the same  strategy folder that has bene described in previous sections. The files have the same name as the *run_name* argument provided as part of this executable. Additionally there are 2 suffixes. 
+The first script is suffixed with '-live-\<dateToday\>'. This is similar to the '-algo' file discussed earlier in the Backtesting section. The second file is suffixed with '-perf' and is similar to the '-bt' file discussed in earlier. Each day the performance metrics along-with the parameters used for that day are going to be appended and saved-down into this csv. 
+
+#### IB configs
+
+We start-off with the standard config defition and then move on to the 'multi-config' definition by simply highlighting the differences. Lets continue with the *intraday-macd-usdinr* example. The config value corresponding to this run can be found in the **INTDY_MACD_USDINR** variable. Below are the components we see
+- *strategy_name*: This corresponds to the 'class name' of the strategy that is to be run. One can re-collect that the list of all available class names in the repository currently can be found in the [strategy_mapper](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/strategy_mapper.py) file
+- *params*: the strategy parameters using which the strategy class, above, is initialized. These params are ofcourse strategy-specific and would tally **exactly** with the strategy *params* used in the backtest and optimization configs
+- *api_attrs*: This constitutes the set of parameters using which the **IB_API** wrapper class is initialzed. While the implementation of this wrapper class itself is infrastructural and of no consequence to the end-user, the parameters using which it is initialized is by itself important in terms of how the strategy would be eventually executed on TWS or IB gateway. Details of these parameters can be found below
+	- *historical_data_offset*: We need to specify the amount of storage space to be kept in cache for the historical data. This is specified in terms of seconds. This is necessary because one would need historical data to generate current signals for example historical prices to be used to generate an EMA. This calculation would need to be done manually by the user based on the strategy params that they plan on using. 
+	For example if i require a 50-EMA on 30 min bar data that would mean I would need access to alteast 25 hours of trading data. That is a little more than 4 trading days, so we count 5. However there could be trading holidays in between (atleast the weekend) so we need to add atleast 2 more days so that comes up to 7. Therefore the value of this parameter would need to be anything greater than 86000\*7. 
+	Please note that there is no harm is specifying a higher offset value - it would only mean that there would be a bunch of empty rows in the cache (which would anyways be deleted later). however specifying a smaller value than whats required could lead to us not having access to necessary historical data to compute our technicals. 
+	- *client_id*: The TWS session acts as a sort of local server serving any number of python scripts that try to connect to it for their purpose. The *client_id* is used to differentiate between these individual python scripts. This can be any natural numnber but point to note is that there cannot be two python scripts running at the same time with the same client_id. The TWS session would connect to and consequently serve only one of them
+	- *order_config*: This drives the mechanism by which the orders are actually executed. For example a 'long' signal in your strategy can be actually executed many ways. You could either go long the futures or buy a call or sell a put or even go long the cash equity. Vice-versa for a sell signal. Additionally for options one could trade using the weeklies or monthlies, ATM, OTM, ITM etc. On each of these poteential trading instruments one could fire market, market limit or limit orders or maybe even leverage one of the many execution algos IB exposes to us. 
+	As a result, the sub-attributes one can specify under *order_config* are as follows
+		- *inst*: This could be one of 'OPT'(options), 'FUT'(futures) or 'STK'(stock/cash)
+		- *dir*: only used when *inst* is set to 'OPT'. This attribute could be set to either 'BUY' (buy options) or 'SELL' (sell options)
+		- *exp*: This is also used only when *inst* is set to 'OPT'. It can be set to 'weekly', 'bi-weekly' or 'monthly'
+		- *strike_mode*: only used whrn *inst* is set to 'OPT'. As of now can be 'atm_minus' (close to ATM but on the OTM side) and 'atm_plus' (close to ATM but on the ITM side)
+		- *order_type*: Can be 'MKT' (market), 'MTL' (marketeble limit) or 'LMT' (limit)
+		- *algo_attrs*: in-case we would like to execute using one of IBs propriety execution algos. This is a dictionary where the keys and values need to tally exactly with the ones accepted by the IB APIs (such as *algoStrategy* and *algoParams*)
+- *api_data_config*: Controls the format in which we receive the bar-data. It has 2 sub-attributes
+	- *barSizeSetting*: the bar-data size. Can be '1 min', '5 mins', '15 mins' etc
+	- *durationStr*: The number of trading days for which historical data needs to be loaded. Note that this needs to somewhat tally with the *historical_data_offset* parameter we set above. This attribute is the number of trading days so would be typically lower than the value we set against *historical_data_offset*
+- *event_wait_time*: The amount of time (in seconds) at which we periodically query for the arrival of a new candlestick. For most strategies this has been set to 1s although for strategies which require to be run on smaller timeframes, we could reduce this even further
+
+The multi-run configurations invoked via the [run_live_ib_multi](https://github.com/vthoquant/auto_X_dist/blob/main/lib/examples/run_live_ib_multi.py) executable differ from the single-run configurations in only one aspect - the *params* attribute is replaced by the *multi_strategy_params* attribute. This nrew attribute is nothing but a collection of multpile individual strategy *params*. For the multi-run executable every other attribute such as *api_attrs*, *api_data_config* etc is exactly the same as the single-run executable.
+Multi-run executables are useful when multiple strategies depend upon the same market data. If so then one can limit the number of client connections to the local TWS server to 1 instead of having seperate clients for each strategy
 
 ## Data format
 
