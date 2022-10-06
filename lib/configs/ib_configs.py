@@ -906,6 +906,198 @@ INTDY_BKOUT_CSTICK_NIFTY = {
     'event_wait_time': 1
 }
 
+INTDY_WILLR_BKOUT_BNIFTY_SELLOPT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -20, 
+        'willr_sell': -80,
+        'willr_period': 30, 
+        'entry_scale': 0, 
+        'exit_scale': 0.618, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 0.5
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 157,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'SELL', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MTL',
+            'strike_mode': 'atm_minus',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_WILLR_BKOUT_BNIFTY_BUYOPT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -20, 
+        'willr_sell': -80,
+        'willr_period': 30, 
+        'entry_scale': 0, 
+        'exit_scale': 0.618, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 0.5
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 158,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MTL',
+            'strike_mode': 'atm_minus',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_WILLR_BKOUT_BNIFTY_FUT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -20, 
+        'willr_sell': -80,
+        'willr_period': 30, 
+        'entry_scale': 0, 
+        'exit_scale': 0.618, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 159,
+        'order_config': {
+            'inst': 'FUT', # can be OPT, FUT, STK
+            'order_type': 'MTL',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_WILLR_BKOUT_NIFTY_SELLOPT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -10, 
+        'willr_sell': -70,
+        'willr_period': 14, 
+        'entry_scale': 0, 
+        'exit_scale': 1, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 0.5
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 160,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'SELL', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MTL',
+            'strike_mode': 'atm_minus',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_WILLR_BKOUT_NIFTY_BUYOPT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -10, 
+        'willr_sell': -70,
+        'willr_period': 14, 
+        'entry_scale': 0, 
+        'exit_scale': 1, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 0.5
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 161,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MTL',
+            'strike_mode': 'atm_minus',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_WILLR_BKOUT_NIFTY_FUT = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -10, 
+        'willr_sell': -70,
+        'willr_period': 14, 
+        'entry_scale': 0, 
+        'exit_scale': 1, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 4,
+        'client_id': 162,
+        'order_config': {
+            'inst': 'FUT', # can be OPT, FUT, STK
+            'order_type': 'MTL',
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '2 D'
+    },
+    
+    'event_wait_time': 1
+}
+
 INTDY_HA_CCI_IB_PARAMS_OPT_TEST_W_BNIFTY_multi_15m = {
     'multi_strategy_params': [
         {
@@ -1032,7 +1224,12 @@ STRATEGY_IB_CONFIG_MAP = {
     'intraday-bkout-cstick-nifty-15m': INTDY_BKOUT_CSTICK_NIFTY,
     'intraday-ha-cci-bnifty-multi-30m': INTDY_HA_CCI_IB_PARAMS_OPT_TEST_W_BNIFTY_multi_15m,
     'intraday-ha-cci-bnifty-sell-multi-30m': INTDY_HA_CCI_IB_PARAMS_OPT_TEST_W_BNIFTY_SELL_multi_15m,
-    'futures-spread-test': FUTURES_SPREAD_EURINR_TEST
+    'intraday-willr-bkout-nifty-sellopt': INTDY_WILLR_BKOUT_NIFTY_SELLOPT,
+    'intraday-willr-bkout-nifty-buyopt': INTDY_WILLR_BKOUT_NIFTY_BUYOPT,
+    'intraday-willr-bkout-nifty-fut': INTDY_WILLR_BKOUT_NIFTY_FUT,
+    'intraday-willr-bkout-bnifty-sellopt': INTDY_WILLR_BKOUT_BNIFTY_SELLOPT,
+    'intraday-willr-bkout-bnifty-buyopt': INTDY_WILLR_BKOUT_BNIFTY_BUYOPT,
+    'intraday-willr-bkout-bnifty-fut': INTDY_WILLR_BKOUT_BNIFTY_FUT,
 }
 
 NSE_EQ_HOLIDAYS = ["2022-01-26", "2022-03-01", "2022-03-18", "2022-04-14", "2022-04-15", "2022-05-03", "2022-08-09", "2022-08-15", "2022-08-31", "2022-10-05", "2022-10-24", "2022-10-26", "2022-11-08"]

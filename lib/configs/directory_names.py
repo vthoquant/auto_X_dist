@@ -17,6 +17,7 @@ STRATEGY_RUN_BASE_PATHS = {
     'INTRADAY_BREAKOUT_HILO': "{}strategy_backtest\\intraday_bkout_hilo\\".format(BASE_PATH),
     'INTRADAY_BREAKOUT_CSTICK': "{}strategy_backtest\\intraday_bkout_cstick\\".format(BASE_PATH),
     'INTRADAY_DBLBREAKOUT_CSTICK': "{}strategy_backtest\\intraday_dblbkout_cstick\\".format(BASE_PATH),
+    'INTRADAY_RANGE_BREAKOUT': "{}strategy_backtest\\intraday_range_bkout\\".format(BASE_PATH),
     'INTRADAY_MA': "{}strategy_backtest\\intraday_ma\\".format(BASE_PATH),
     'INTRADAY_MAC': "{}strategy_backtest\\intraday_mac\\".format(BASE_PATH),
     'INTRADAY_MACD': "{}strategy_backtest\\intraday_macd\\".format(BASE_PATH),
@@ -43,6 +44,7 @@ STRATEGY_RUN_BASE_PATHS = {
     'INTRADAY_CONTINUATION_HLDG': "{}strategy_backtest\\intraday_cont_hldg\\".format(BASE_PATH),
     'INTRADAY_CONTINUATION_ATRTP': "{}strategy_backtest\\intraday_cont_atrtp\\".format(BASE_PATH),
     'INTRADAY_CONTINUATION_ATRSLSHIFT': "{}strategy_backtest\\intraday_cont_atrslshift\\".format(BASE_PATH),
+    'INTRADAY_WILLR_BREAKOUT': "{}strategy_backtest\\intraday_willr_bkout\\".format(BASE_PATH),
     'MOMENTUM_REBAL_STRATEGY': "{}QuantInsti\\project_data\\".format(BASE_PATH),
     'MULTICLASS_CLASSIFIER_REBAL': "{}QuantInsti\\project_data\\".format(BASE_PATH)
 }

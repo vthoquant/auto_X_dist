@@ -43,6 +43,8 @@ STRATEGY_MAP_TEMP = {
     'INTRADAY_BREAKOUT_HILO': 'intraday_breakout',
     'INTRADAY_BREAKOUT_CSTICK': 'intraday_breakout',
     'INTRADAY_DBLBREAKOUT_CSTICK': 'intraday_breakout',
+    'INTRADAY_RANGE_BREAKOUT': 'intraday_breakout',
+    'INTRADAY_WILLR_BREAKOUT': 'intraday_breakout',
     'FUTURES_SPREAD_STATARB': 'futures_spread_statarb'
 }
 

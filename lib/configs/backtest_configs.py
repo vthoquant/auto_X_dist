@@ -609,6 +609,34 @@ INTDY_DBLBKOUT_CSTICK_BT_PARAMS = {
     }
 }
 
+INTDY_RANGE_BKOUT_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_RANGE_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'sl_atr': 1,
+        'tp_atr': 1,
+        'is_trailing_sl': False,
+        'range_bars': 6,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    }
+}
+
+INTDY_WILLR_BKOUT_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_WILLR_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'willr_buy': -20, 
+        'willr_sell': -80,
+        'willr_period': 30, 
+        'entry_scale': 0, 
+        'exit_scale': 0.618, 
+        'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    }
+}
+
 FUTURES_SPREAD_STATARB_PARAMS = {
     'strategy_name': 'FUTURES_SPREAD_STATARB',
     'params': {
@@ -661,6 +689,8 @@ STRATEGY_BT_CONFIG_MAP = {
     'intraday-bkout-hilo': INTDY_BKOUT_HILO_BT_PARAMS,
     'intraday-bkout-cstick': INTDY_BKOUT_CSTICK_BT_PARAMS,
     'intraday-dblbkout-cstick': INTDY_DBLBKOUT_CSTICK_BT_PARAMS,
+    'intraday-range-bkout': INTDY_RANGE_BKOUT_BT_PARAMS,
+    'intraday-willr-bkout': INTDY_WILLR_BKOUT_BT_PARAMS,
     'intraday-ha-cci': INTDY_HA_CCI_BT_PARAMS,
     'futures-spread-nifty': FUTURES_SPREAD_STATARB_PARAMS,
     'test': PORTFOLIO_MOM_REBAL_BT_PARAMS,

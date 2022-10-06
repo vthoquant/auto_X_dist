@@ -621,6 +621,18 @@ INTRADAY_DBLBKOUT_CSTICK_PARAMS = {
 
 INTRADAY_DBLBKOUT_CSTICK_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_DBLBKOUT_CSTICK_PARAMS)
 
+INTRADAY_RANGE_BKOUT_PARAMS = {
+    'rescale_shorts': [False],
+    'range_bars': [3, 6, 9, 15, 30],
+    'sl_atr': [0.1, 1, 2, 5],
+    'tp_atr': [1, 2, 5, 10],
+    'is_trailing_sl': [True, False],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
+}
+
+INTRADAY_RANGE_BKOUT_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_RANGE_BKOUT_PARAMS)
+
 INTRADAY_HA_CCI_PARAMS = {
     'rescale_shorts': [False],
     'sl_atr': [5, 7, 10, 12],
@@ -635,6 +647,20 @@ INTRADAY_HA_CCI_PARAMS = {
 }
 
 INTRADAY_HA_CCI_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_HA_CCI_PARAMS)
+
+INTRADAY_WILLR_BKOUT_PARAMS = {
+    'rescale_shorts': [False],
+    'willr_buy': [-10, -20, -30], 
+    'willr_sell': [-70, -80, -90],
+    'willr_period': [14, 30, 50, 100, 133, 150], 
+    'entry_scale': [0, 0.618, 1], 
+    'exit_scale': [0, 0.618, 1], 
+    'eod_squareoff': [True, False],
+    'add_transaction_costs': [False],
+    'inst_delta': [1.0]
+}
+
+INTRADAY_WILLR_BKOUT_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_WILLR_BKOUT_PARAMS)
 
 
 STRATEGY_OPT_CONFIG_MAP = {
@@ -671,5 +697,7 @@ STRATEGY_OPT_CONFIG_MAP = {
     'INTRADAY_BREAKOUT_HILO': INTRADAY_BKOUT_HILO_PARAMS_OPT_CONFIGS,
     'INTRADAY_DBLBREAKOUT_CSTICK': INTRADAY_DBLBKOUT_CSTICK_PARAMS_OPT_CONFIGS,
     'INTRADAY_BREAKOUT_CSTICK': INTRADAY_BKOUT_CSTICK_PARAMS_OPT_CONFIGS,
+    'INTRADAY_RANGE_BREAKOUT': INTRADAY_RANGE_BKOUT_PARAMS_OPT_CONFIGS,
+    'INTRADAY_WILLR_BREAKOUT': INTRADAY_WILLR_BKOUT_PARAMS_OPT_CONFIGS,
     'INTRADAY_HA_CCI': INTRADAY_HA_CCI_PARAMS_OPT_CONFIGS,
 }
