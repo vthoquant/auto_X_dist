@@ -6,7 +6,8 @@ Created on Wed Oct 13 19:03:25 2021
 """
 from lib.strategies.base_classes import INTRADAY_BASE
 from lib.configs.directory_names import STRATEGY_RUN_BASE_PATHS
-from talib.abstract import ROCP, RSI, EMA, BBANDS
+from lib.strategies.intraday_ma import INTRADAY_MA
+from talib.abstract import ROCP, RSI, EMA, BBANDS, ATR
 from talib.abstract import CDLHAMMER, CDLSHOOTINGSTAR, CDLGRAVESTONEDOJI, CDLDRAGONFLYDOJI, CDLINVERTEDHAMMER, CDLHANGINGMAN, CDLMORNINGDOJISTAR, CDLMORNINGSTAR, CDLEVENINGDOJISTAR, CDLEVENINGSTAR, CDLENGULFING, CDLHARAMI 
 import numpy as np
 import pandas as pd
@@ -31,37 +32,7 @@ class INTRADAY_PULLBACK(INTRADAY_BASE):
         self._state_vars = {'entry_state': None, 'entry_rsi': None, 'entry_ema': None, 'entry_signal': None, 'entry_price': None, 'bars_since_trade': None, 'prev_state': None}
         self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
         self.ticker_to_conid = {}
-        
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        #data = self.extended_mkt.loc[dt]
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
-        self._update_indicators_to_publish(data)
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade:            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
-        
+       
     def _update_indicators_to_publish(self, data):
         self.indicators_to_publish['EMA'] = data['EMA']
         self.indicators_to_publish['RSI'] = data['RSI']
@@ -141,7 +112,6 @@ class INTRADAY_PULLBACK(INTRADAY_BASE):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -363,6 +333,23 @@ class INTRADAY_BB(INTRADAY_PULLBACK):
         self.extended_mkt['BB_lower'] = bb_lower
         self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
         
+class INTRADAY_BB_REVERSAL(INTRADAY_BB):
+    db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_BB_REVERSAL']
+    def _generate_trade_conditions(self, data, dt):
+        self.trade_state = self.TRADE_STATES.Intraday_squareoff if self.trade_state == self.TRADE_STATES.Start else self.trade_state
+        ticker = self.tickers[0]
+        signal = None
+        bb_upper = self.indicators_to_publish['BB_upper']
+        bb_middle = self.indicators_to_publish['BB_middle']
+        bb_lower = self.indicators_to_publish['BB_lower']
+        price_close = data['{} Close'.format(ticker)]
+        price_open = data['{} Open'.format(ticker)]
+        buy_signal = price_open < bb_lower and (price_close - price_open) > 0
+        buy_squareoff = price_close >= bb_middle or (self.max_holding is not None and self.bars_since_trade is not None and self.bars_since_trade >= self.max_holding)
+        sell_signal = price_open > bb_upper and (price_close - price_open) < 0
+        sell_squareoff = price_close <= bb_middle or (self.max_holding is not None and self.bars_since_trade is not None and self.bars_since_trade >= self.max_holding)
+        return signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff
+        
 class INTRADAY_PULLBACK_CSTICK_REV(INTRADAY_PULLBACK):
     db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_PULLBACK_CSTICK_REV']
     
@@ -487,4 +474,329 @@ class INTRADAY_PULLBACK_CSTICK_REV(INTRADAY_PULLBACK):
         elif self.trade_state == self.TRADE_STATES.Regular_sell:
             if sell_squareoff:
                 self._state_vars['sl_price'] = None
+                
+                
+class INTRADAY_PULLBACK_PRICECHANGE(INTRADAY_PULLBACK):
+    db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_PULLBACK_PRICECHANGE']
+    excl_attr_store = ['db_cache_mkt', 'last_processed_time', 'db_cache_algo']
+        
+    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, change_period=None, atr_multiplier=None, sl_atr=None, max_holding=None, trend_baseline=None, side_restriction=None, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None):
+        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app)
+        self.trade_state = INTRADAY_PULLBACK.TRADE_STATES.Start
+        self.change_period = change_period or 2
+        self.atr_multiplier = atr_multiplier or 2
+        self.sl_atr = sl_atr or 1
+        self.max_holding = max_holding or 5
+        self.trend_baseline = trend_baseline
+        self.side_restriction = side_restriction
+        self.min_bars_to_trade = 1   #hardcoded for now
+        self.bars_since_trade = None
+        self._state_vars = {'entry_state': None, 'entry_price': None, 'bars_since_trade': None, 'prev_state': None}
+        self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
+        self.ticker_to_conid = {}
+       
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['EMA'] = data['EMA']
+        self.indicators_to_publish['ATR'] = data['ATR']
+        self.indicators_to_publish['price_change'] = data['price_change']
+    
+    def _generate_trade_conditions(self, data, dt):
+        self.trade_state = INTRADAY_PULLBACK.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_PULLBACK.TRADE_STATES.Start else self.trade_state
+        ticker = self.tickers[0]
+        signal = None
+        ema = data['EMA']
+        atr = data['ATR']
+        price_close = data['{} Close'.format(ticker)]
+        price_change = data['price_change']
+        price_entry = self._state_vars['entry_price']
+        buy_signal = price_close >= ema and price_change < 0 and abs(price_change) > self.atr_multiplier * self.change_period * atr
+        buy_squareoff = (price_entry is not None and price_entry - price_close > atr * self.sl_atr) or (self.bars_since_trade is not None and self.bars_since_trade >= self.max_holding)
+        sell_signal = price_close <= ema and price_change > 0 and abs(price_change) > self.atr_multiplier * self.change_period * atr
+        sell_squareoff = (price_entry is not None and price_close - price_entry > atr * self.sl_atr) or (self.bars_since_trade is not None and self.bars_since_trade >= self.max_holding)
+        return signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff
+
+        
+    def prepare_strategy_attributes(self, dt=None):
+        self.extended_mkt = self.db_cache_mkt.copy()
+        #special handling incase particular tickers dont have data as of a given day
+        self.extended_mkt.fillna(method='ffill', inplace=True)
+        day_in_pydt = pd.Series(np.vectorize(lambda x: x.day)(pd.Series(self.extended_mkt.index.values).map(datetime.datetime.date)))
+        self.extended_mkt['isEOD'] = (day_in_pydt != day_in_pydt.shift(-1)).values
+        if dt is not None:
+            #hack for live run
+            self.extended_mkt.loc[dt, 'isEOD'] = False
+        ticker = self.tickers[0]
+        
+        self.extended_mkt['{} returns'.format(ticker)] = ROCP(self.extended_mkt['{} Close'.format(ticker)], timeperiod=1)
+        self.extended_mkt['EMA'] = EMA(self.extended_mkt['{} Close'.format(ticker)], timeperiod=self.trend_baseline) if self.trend_baseline is not None else self.extended_mkt['{} Close'.format(ticker)]
+        self.extended_mkt['ATR'] = ATR(self.extended_mkt['{} High'.format(ticker)], self.extended_mkt['{} Low'.format(ticker)], self.extended_mkt['{} Close'.format(ticker)])
+        self.extended_mkt['price_change'] = self.extended_mkt.loc[:, '{} Close'.format(ticker)] - self.extended_mkt.loc[:, '{} Close'.format(ticker)].shift(self.change_period)
+        self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
+        
+        
+class INTRADAY_KELTNER_REVERSAL(INTRADAY_MA):
+    db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_KELTNER_REVERSAL']
+        
+    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_period=None, atr_multiplier=None, sl_atr=None, bkout_candle_size=None, reentry_wait=0, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None, use_synthetic_options=False):
+        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app, use_synthetic_options)
+        self.trade_state = self.TRADE_STATES.Start
+        self.ema_period = ema_period or 20
+        self.atr_multiplier = atr_multiplier
+        self.sl_atr = sl_atr or 1.0
+        self.bkout_candle_size = bkout_candle_size if bkout_candle_size is not None else 0
+        self.reentry_wait = reentry_wait
+        self.min_bars_to_trade = 1   #hardcoded for now
+        self._state_vars = {'prev_state': None, 'entry_price': None, 'long_state': 0, 'short_state': 0, 'wait_bars': 0}
+        #0: neutral, #1: bkout occured, #2: re-entry after bkout, #-1: false bkout
+        self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
+        self.ticker_to_conid = {}
+        
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['UB'] = data['UB']
+        self.indicators_to_publish['LB'] = data['LB']
+        self.indicators_to_publish['ATR'] = data['ATR']
+        if self.use_synthetic_options:
+            ticker = self.tickers[0]
+            self.indicators_to_publish['opt_strike'] = self.synthetic_options_data['opt_strike']
+            self.indicators_to_publish['opt_type'] = self.synthetic_options_data['opt_type']
+            self.indicators_to_publish['live_price'] = self.live_prices[ticker]
+            
+    def _update_indicators_to_publish_post(self, data):
+        self.indicators_to_publish['entry_price'] = self._state_vars['entry_price']
+        self.indicators_to_publish['long_state'] = self._state_vars['long_state']
+        self.indicators_to_publish['short_state'] = self._state_vars['short_state']
+        self.indicators_to_publish['wait_bars'] = self._state_vars['wait_bars']
+        if self.use_synthetic_options:
+            ticker = self.tickers[0]
+            self.indicators_to_publish['opt_strike'] = self.synthetic_options_data['opt_strike']
+            self.indicators_to_publish['opt_type'] = self.synthetic_options_data['opt_type']
+            self.indicators_to_publish['live_price'] = self.live_prices[ticker]
+        
+    def _generate_trades_on_indicators(self, data, dt, isEOD=False):
+        signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff = self._generate_trade_conditions(data, dt)
+        is_trade_bar = self._process_conditions(data, dt, signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff, isEOD)
+        return is_trade_bar
+    
+    def _generate_trade_conditions(self, data, dt):
+        self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
+        ticker = self.tickers[0]
+        ema = data['EMA']
+        ub = data['UB']
+        lb = data['LB']
+        atr = data['ATR']
+        price_entry = self._state_vars['entry_price']
+        price_close = data['{} Close'.format(ticker)]
+        price_open = data['{} Open'.format(ticker)]
+        return self._process_sub_states(price_close, price_open, price_entry, ema, ub, lb, atr)
+    
+    def _process_sub_states(self, price_close, price_open, price_entry, ema, ub, lb, atr):
+        signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff = None, False, False, False, False
+        if self.trade_state == self.TRADE_STATES.Intraday_squareoff:
+            #always ensure that this condition check is run first
+            if price_close > ema:
+                self._state_vars['short_state'] = 0
+            else:
+                self._state_vars['long_state'] = 0
+
+
+            if self._state_vars['long_state'] in [0, 2] and price_close > ub and price_close > price_open and price_close - price_open > atr * self.bkout_candle_size:
+                self._state_vars['long_state'] = 1
+            elif self._state_vars['long_state'] in [0, 2] and price_close > ub and price_close > price_open and price_close - price_open < atr * self.bkout_candle_size:
+                self._state_vars['long_state'] = -1
+            elif self._state_vars['long_state'] == -1 and price_close < ub:
+                self._state_vars['long_state'] = 0
+            elif self._state_vars['long_state'] == 1 and price_close < ub:
+                self._state_vars['long_state'] = 2
+                self._state_vars['wait_bars'] = 0
+            elif self._state_vars['long_state'] == 2:
+                self._state_vars['wait_bars'] = self._state_vars['wait_bars'] + 1
+                
+            if self._state_vars['long_state'] == 2 and self._state_vars['wait_bars'] >= self.reentry_wait:
+                sell_signal = True
+                self._state_vars['long_state'] = 3
+                self._state_vars['wait_bars'] = 0
+                
+            if self._state_vars['short_state'] in [0, 2] and price_close < lb and price_close < price_open and price_open - price_close > atr * self.bkout_candle_size:
+                self._state_vars['short_state'] = 1
+            elif self._state_vars['short_state'] in [0, 2] and price_close < lb and price_close < price_open and price_open - price_close < atr * self.bkout_candle_size:
+                self._state_vars['short_state'] = -1
+            elif self._state_vars['short_state'] == -1 and price_close > lb:
+                self._state_vars['short_state'] = 0
+            elif self._state_vars['short_state'] == 1 and price_close > lb:
+                self._state_vars['short_state'] = 2
+                self._state_vars['wait_bars'] = 0
+            elif self._state_vars['short_state'] == 2:
+                self._state_vars['wait_bars'] = self._state_vars['wait_bars'] + 1
+                
+            if self._state_vars['short_state'] == 2 and self._state_vars['wait_bars'] >= self.reentry_wait:
+                buy_signal = True
+                self._state_vars['short_state'] = 3
+                self._state_vars['wait_bars'] = 0
+                
+        if self.trade_state == self.TRADE_STATES.Regular_sell:
+            assert self._state_vars['long_state'] == 3 and self._state_vars['short_state'] == 0, "main state is sell but sub-states are inconsistent"
+            if price_close - price_entry > self.sl_atr * atr:
+                sell_squareoff = True
+                self._state_vars['long_state'] = -1 if price_close > ub else 0
+            elif price_close <= ema:
+                sell_squareoff = True
+                self._state_vars['long_state'] = 0
+                if price_close < lb:
+                    self._state_vars['short_state'] = -1
+                    
+        if self.trade_state == self.TRADE_STATES.Regular_buy:
+            assert self._state_vars['short_state'] == 3 and self._state_vars['long_state'] == 0, "main state is buy but sub-states are inconsistent"
+            if price_entry - price_close > self.sl_atr * atr:
+                buy_squareoff = True
+                self._state_vars['short_state'] = -1 if price_close < lb else 0
+            elif price_close >= ema:
+                buy_squareoff = True
+                self._state_vars['short_state'] = 0
+                if price_close > ub:
+                    self._state_vars['long_state'] = -1
+                    
+        return signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff
+        
+    def _process_conditions(self, data, dt, signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff, isEOD=False):
+        if hasattr(self, 'side_restriction'):
+            if self.side_restriction == 1:
+                #only long trades allowed
+                sell_signal, sell_squareoff = False, False
+            elif self.side_restriction == -1:
+                #only short trades allowed
+                buy_signal, buy_squareoff = False, False
+        
+        price_close = data['{} Close'.format(self.tickers[0])]
+        if not isEOD:
+            if self.trade_state == self.TRADE_STATES.Intraday_squareoff:
+                if buy_signal:
+                    signal = 1
+                    self.trade_state = self.TRADE_STATES.Regular_buy
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+                elif sell_signal:
+                    signal = -1
+                    self.trade_state = self.TRADE_STATES.Regular_sell
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+            elif self.trade_state == self.TRADE_STATES.Regular_buy:
+                if buy_squareoff:
+                    signal = 0
+                    self.trade_state = self.TRADE_STATES.Intraday_squareoff
+                    self.bars_since_trade = None
+                    self._state_vars['entry_price'] = None
+                else:
+                    self.bars_since_trade = self.bars_since_trade + 1
+            elif self.trade_state == self.TRADE_STATES.Regular_sell:
+                if sell_squareoff:
+                    signal = 0
+                    self.trade_state = self.TRADE_STATES.Intraday_squareoff
+                    self.bars_since_trade = None
+                    self._state_vars['entry_price'] = None
+                else:
+                    self.bars_since_trade = self.bars_since_trade + 1
+            else:
+                signal = None
+                print("unknown condition at state:{} at {}".format(self.trade_state, dt))
+        else:
+            signal = 0
+            self.run_bars_since_sod = 0 #reset this attribute for next days run
+            self.states_and_indicators_reset()
+            
+        self.indicators_to_publish['Signal'] = signal
+        self.indicators_to_publish['trade_state'] = self.trade_state
+
+        is_trade_bar = False
+        for ticker in self.tickers:
+            prev_wts = self.weights[ticker]
+            self.weights[ticker] = signal if signal is not None else self.weights[ticker]
+            #assuming only 1 ticker here
+            is_trade_bar = False if prev_wts == self.weights[ticker] else True
+    
+        return is_trade_bar
+        
+    def prepare_strategy_attributes(self, dt=None):
+        self.extended_mkt = self.db_cache_mkt.copy()
+        #special handling incase particular tickers dont have data as of a given day
+        self.extended_mkt.fillna(method='ffill', inplace=True)
+        day_in_pydt = pd.Series(np.vectorize(lambda x: x.day)(pd.Series(self.extended_mkt.index.values).map(datetime.datetime.date)))
+        self.extended_mkt['isEOD'] = (day_in_pydt != day_in_pydt.shift(-1)).values
+        if dt is not None:
+            #hack for live run
+            self.extended_mkt.loc[dt, 'isEOD'] = False
+        ticker = self.tickers[0]
+        
+        self.extended_mkt['{} returns'.format(ticker)] = ROCP(self.extended_mkt['{} Close'.format(ticker)], timeperiod=1)
+        self.extended_mkt['ATR'] = ATR(self.extended_mkt['{} High'.format(ticker)], self.extended_mkt['{} Low'.format(ticker)], self.extended_mkt['{} Close'.format(ticker)])
+        self.extended_mkt['EMA'] = EMA(self.extended_mkt['{} Close'.format(ticker)], timeperiod=self.ema_period)
+        self.extended_mkt['UB'] = self.extended_mkt.loc[:, 'EMA'] + self.atr_multiplier * self.extended_mkt.loc[:, 'ATR']
+        self.extended_mkt['LB'] = self.extended_mkt.loc[:, 'EMA'] - self.atr_multiplier * self.extended_mkt.loc[:, 'ATR']
+        self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
+        
+    def states_and_indicators_reset(self):
+        self.trade_state = self.TRADE_STATES.Intraday_squareoff
+        self.indicators_to_publish['Signal'] = 0 #hack to ensure that 'Signal' is set to 0 if we square-off
+        self._state_vars['entry_price'] = None
+        self._state_vars['long_state'] = 0 
+        self._state_vars['short_state'] = 0
+        self._state_vars['wait_bars'] = 0
+        
+class INTRADAY_BB_REVERSAL_V2(INTRADAY_KELTNER_REVERSAL):
+    db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_BB_REVERSAL_V2']
+        
+    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, bb_period=None, bb_stdev=None, sl_atr=None, bkout_candle_size=None, reentry_wait=0, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None, use_synthetic_options=False):
+        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app, use_synthetic_options)
+        self.trade_state = self.TRADE_STATES.Start
+        self.bb_period = bb_period or 20
+        self.bb_stdev = bb_stdev or 2
+        self.sl_atr = sl_atr or 1.0
+        self.bkout_candle_size = bkout_candle_size if bkout_candle_size is not None else 0
+        self.reentry_wait = reentry_wait
+        self.min_bars_to_trade = 1   #hardcoded for now
+        self._state_vars = {'prev_state': None, 'entry_price': None, 'long_state': 0, 'short_state': 0, 'wait_bars': 0}
+        #0: neutral, #1: bkout occured, #2: re-entry after bkout, #-1: false bkout
+        self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
+        self.ticker_to_conid = {}
+        
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['UB'] = data['UB']
+        self.indicators_to_publish['LB'] = data['LB']
+        self.indicators_to_publish['ATR'] = data['ATR']
+        if self.use_synthetic_options:
+            ticker = self.tickers[0]
+            self.indicators_to_publish['opt_strike'] = self.synthetic_options_data['opt_strike']
+            self.indicators_to_publish['opt_type'] = self.synthetic_options_data['opt_type']
+            self.indicators_to_publish['live_price'] = self.live_prices[ticker]
+    
+    def _generate_trade_conditions(self, data, dt):
+        self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
+        ticker = self.tickers[0]
+        ema = data['EMA']
+        ub = data['UB']
+        lb = data['LB']
+        atr = data['ATR']
+        price_entry = self._state_vars['entry_price']
+        price_close = data['{} Close'.format(ticker)]
+        price_open = data['{} Open'.format(ticker)]
+        return self._process_sub_states(price_close, price_open, price_entry, ema, ub, lb, atr)
+        
+    def prepare_strategy_attributes(self, dt=None):
+        self.extended_mkt = self.db_cache_mkt.copy()
+        #special handling incase particular tickers dont have data as of a given day
+        self.extended_mkt.fillna(method='ffill', inplace=True)
+        day_in_pydt = pd.Series(np.vectorize(lambda x: x.day)(pd.Series(self.extended_mkt.index.values).map(datetime.datetime.date)))
+        self.extended_mkt['isEOD'] = (day_in_pydt != day_in_pydt.shift(-1)).values
+        if dt is not None:
+            #hack for live run
+            self.extended_mkt.loc[dt, 'isEOD'] = False
+        ticker = self.tickers[0]
+        
+        self.extended_mkt['{} returns'.format(ticker)] = ROCP(self.extended_mkt['{} Close'.format(ticker)], timeperiod=1)
+        self.extended_mkt['ATR'] = ATR(self.extended_mkt['{} High'.format(ticker)], self.extended_mkt['{} Low'.format(ticker)], self.extended_mkt['{} Close'.format(ticker)])
+        upperband, middleband, lowerband = BBANDS(self.extended_mkt['{} Close'.format(ticker)], timeperiod=self.bb_period, nbdevup=self.bb_stdev, nbdevdn=self.bb_stdev)
+        self.extended_mkt['UB'] = upperband
+        self.extended_mkt['LB'] = lowerband
+        self.extended_mkt['EMA'] = middleband
+        self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
+
     

@@ -326,6 +326,19 @@ INTRADAY_MAC_PARAMS = {
 
 INTRADAY_MAC_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_MAC_PARAMS)
 
+INTRADAY_MAC_2P_PARAMS = {
+    'rescale_shorts': [False],
+    'ema_window_short': [2, 3, 5],
+    'ema_window_long': [3, 5, 10],
+    'sl_perc': [0.005, 0.01, None],
+    #'carry_fwd_sl': [False, True],
+    'side_restriction': [1, -1],
+    'add_transaction_costs': [False],
+    'inst_delta': [1.0]
+}
+
+INTRADAY_MAC_2P_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_MAC_2P_PARAMS)
+
 INTRADAY_MAC_SL_PARAMS = {
     'rescale_shorts': [False],
     'ema_window_short': [int(x) for x in np.arange(50, 110,5)],
@@ -393,12 +406,12 @@ INTRADAY_PULLBACK_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_PULLBACK_P
 
 INTRADAY_PULLBACK_CRSI_PARAMS = {
     'rescale_shorts': [False],
-    'rsi_period': [2, 3, 5],
+    'rsi_period': [2, 3],
     'cumul_rsi_period': [2, 3],
     'rsi_entry': [(5, 95), (2, 98), (10, 90)],
-    'rsi_exit': [(55, 45), (75, 25), (40, 60)],
-    'max_holding': [1, 3, 5],
-    'trend_baseline': [50, 100],
+    'rsi_exit': [(55, 45), (40, 60)],
+    'max_holding': [3, 5],
+    'trend_baseline': [None, 50, 100],
     'side_restriction': [-1, 1],
     'restrict_trade_time': [False],
     'add_transaction_costs': [True],
@@ -435,12 +448,12 @@ INTRADAY_PULLBACK_BB_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_PULLBAC
 
 INTRADAY_PULLBACK_CSTICK_REV_PARAMS = {
     'rescale_shorts': [False],
-    'rsi_period': [2, 3, 5, 10], 
+    'rsi_period': [2, 3, 5], 
     'rsi_entry': [(5, 95), (10, 90), (25, 75)],
     'rsi_exit': [(55, 45), (40, 60)],
     'max_holding': [3, 5, None],
     'cstick_modes': ['1', '2', '3', '4', '5'],
-    'trend_baseline': [20, 50, 100],
+    'trend_baseline': [None, 50, 100],
     'side_restriction': [-1, 1],
     'restrict_trade_time': [False],
     'add_transaction_costs': [True],
@@ -448,6 +461,46 @@ INTRADAY_PULLBACK_CSTICK_REV_PARAMS = {
 }
 
 INTRADAY_PULLBACK_CSTICK_REV_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_PULLBACK_CSTICK_REV_PARAMS)
+
+INTRADAY_PULLBACK_PRICECHANGE_PARAMS = {
+    'rescale_shorts': [False],
+    'change_period': [2, 3, 5], 
+    'atr_multiplier': [0.5, 0.75, 1, 1.2, 1.5],
+    'sl_atr': [0.1, 1],
+    'max_holding': [3, 5],
+    'trend_baseline': [None, 20, 50],
+    'side_restriction': [1, -1],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
+}
+
+INTRADAY_PULLBACK_PRICECHANGE_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_PULLBACK_PRICECHANGE_PARAMS)
+
+INTRADAY_KELTNER_REV_PARAMS = {
+    'rescale_shorts': [False],
+    'ema_period': [10, 20], 
+    'atr_multiplier': [1, 1.5, 2],
+    'sl_atr': [0.1, 0.5, 1], 
+    'bkout_candle_size': [0, 0.25, 0.5, 1], 
+    'reentry_wait': [0, 1, 2],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
+}
+
+INTRADAY_KELTNER_REV_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_KELTNER_REV_PARAMS)
+
+INTRADAY_BB_REV_V2_PARAMS = {
+    'rescale_shorts': [False],
+    'bb_period': [10, 20], 
+    'bb_stdev': [1.0, 1.5, 2.0],
+    'sl_atr': [0.1, 0.5, 1], 
+    'bkout_candle_size': [0, 0.25, 0.5, 1], 
+    'reentry_wait': [0, 1, 2],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
+}
+
+INTRADAY_BB_REV_V2_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_BB_REV_V2_PARAMS)
 
 INTRADAY_CONT_HLDG_PARAMS = {
     'rescale_shorts': [False],
@@ -598,12 +651,14 @@ INTRADAY_BKOUT_HILO_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_BKOUT_HI
 
 INTRADAY_BKOUT_CSTICK_PARAMS = {
     'rescale_shorts': [False],
-    'lookback_period': [1, 2, 3, 5, 10],
-    'sl_atr': [0.1, 1, 2, 5],
+    #'lookback_period': [1, 2, 5, 10, 20, 30, 40],
+    'lookback_period': [70, 100, 150],
+    'sl_atr': [0.1, 1, 2],
     'tp_atr': [1, 2, 5, 10],
-    'is_trailing_sl': [False],
-    'add_transaction_costs': [False],
-    'inst_delta': [1.0]
+    'is_trailing_sl': [True],
+    'trail_scale': [0, 0.5, 0.75, 1],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
 }
 
 INTRADAY_BKOUT_CSTICK_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_BKOUT_CSTICK_PARAMS)
@@ -612,11 +667,11 @@ INTRADAY_DBLBKOUT_CSTICK_PARAMS = {
     'rescale_shorts': [False],
     'lookback_period': [1, 2, 3, 5, 10],
     'eod_lookback_period': [1, 2, 3, 5, 10],
-    'sl_atr': [0.1, 1, 2, 5],
+    'sl_atr': [0.1, 1, 2],
     'tp_atr': [1, 2, 5, 10],
     'is_trailing_sl': [False],
-    'add_transaction_costs': [False],
-    'inst_delta': [1.0]
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
 }
 
 INTRADAY_DBLBKOUT_CSTICK_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_DBLBKOUT_CSTICK_PARAMS)
@@ -633,17 +688,32 @@ INTRADAY_RANGE_BKOUT_PARAMS = {
 
 INTRADAY_RANGE_BKOUT_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_RANGE_BKOUT_PARAMS)
 
+INTRADAY_KELTNER_BKOUT_PARAMS = {
+    'rescale_shorts': [False],
+    'ema_period': [10, 20], 
+    'atr_multiplier': [1, 2],
+    'atr_signal_period': [5, 10], 
+    'sl_level': [0.25, 0.5, 1], 
+    'trailing_sl_mode': [False, True],
+    'trail_scale': [0.5, 0.75, 1],
+    'trade_all': [False, True],
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
+}
+
+INTRADAY_KELTNER_BKOUT_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_KELTNER_BKOUT_PARAMS)
+
 INTRADAY_HA_CCI_PARAMS = {
     'rescale_shorts': [False],
-    'sl_atr': [5, 7, 10, 12],
-    'tp_atr': [7, 10, 12, 15],
+    'sl_atr': [1, 2, 5],
+    'tp_atr': [2, 5, 10],
     'is_trailing_sl': [False, True],
-    'cci_period': [20, 30, 40, 50],
-    'cci_entry': [(-50, 50), (-75, 75), (-100, 100), (-125, 125), (-150, 150)],
-    'cci_exit': [(50, -50), (75, -75), (100, -100), (125, -125), (150, -150)],
+    'cci_period': [20, 30, 50],
+    'cci_entry': [(-50, 50), (-75, 75), (-100, 100), (-150, 150)],
+    'cci_exit': [(50, -50), (75, -75), (100, -100), (150, -150)],
     'side_restriction': [-1, 1],
-    'add_transaction_costs': [False],
-    'inst_delta': [1.0]
+    'add_transaction_costs': [True],
+    'inst_delta': [0.5]
 }
 
 INTRADAY_HA_CCI_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_HA_CCI_PARAMS)
@@ -662,6 +732,16 @@ INTRADAY_WILLR_BKOUT_PARAMS = {
 
 INTRADAY_WILLR_BKOUT_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_WILLR_BKOUT_PARAMS)
 
+INTRADAY_FISHER_CROSSOVER_PARAMS = {
+    'rescale_shorts': [False],
+    'fisher_period': [9, 13, 20, 50], 
+    'fisher_mode': [1, 2, 3],
+    'add_transaction_costs': [False],
+    'inst_delta': [1.0]
+}
+
+INTRADAY_FISHER_CROSSOVER_PARAMS_OPT_CONFIGS = utils.params_iterator(INTRADAY_FISHER_CROSSOVER_PARAMS)
+
 
 STRATEGY_OPT_CONFIG_MAP = {
     'MOMENTUM_REBAL_STRATEGY': MOMENTUM_REBAL_OPT_CONFIGS,
@@ -676,6 +756,7 @@ STRATEGY_OPT_CONFIG_MAP = {
     'INTRADAY_TREND_HEIKIN_3': INTRADAY_TREND_HEIKIN3_OPT_CONFIGS,
     'INTRADAY_MA': INTRADAY_MA_PARAMS_OPT_CONFIGS,
     'INTRADAY_MAC': INTRADAY_MAC_PARAMS_OPT_CONFIGS,
+    'INTRADAY_MAC_2PERIOD': INTRADAY_MAC_2P_PARAMS_OPT_CONFIGS,
     'INTRADAY_MAC_SL': INTRADAY_MAC_SL_PARAMS_OPT_CONFIGS,
     'INTRADAY_MAC_MA': INTRADAY_MAC_MA_PARAMS_OPT_CONFIGS,
     'INTRADAY_MACD': INTRADAY_MACD_PARAMS_OPT_CONFIGS,
@@ -685,6 +766,9 @@ STRATEGY_OPT_CONFIG_MAP = {
     'INTRADAY_PULLBACK_CUMUL_RSI': INTRADAY_PULLBACK_CRSI_PARAMS_OPT_CONFIGS,
     'INTRADAY_PULLBACK_PRICE_LB': INTRADAY_PULLBACK_LB_PARAMS_OPT_CONFIGS,
     'INTRADAY_PULLBACK_CSTICK_REV': INTRADAY_PULLBACK_CSTICK_REV_PARAMS_OPT_CONFIGS,
+    'INTRADAY_PULLBACK_PRICECHANGE': INTRADAY_PULLBACK_PRICECHANGE_PARAMS_OPT_CONFIGS,
+    'INTRADAY_KELTNER_REVERSAL': INTRADAY_KELTNER_REV_PARAMS_OPT_CONFIGS,
+    'INTRADAY_BB_REVERSAL_V2': INTRADAY_BB_REV_V2_PARAMS_OPT_CONFIGS,
     'INTRADAY_CONTINUATION_HLDG': INTRADAY_CONT_HLDG_PARAMS_OPT_CONFIGS,
     'INTRADAY_CONTINUATION_ATRTP': INTRADAY_CONT_ATRTP_PARAMS_OPT_CONFIGS,
     'INTRADAY_CONTINUATION_ATRSLSHIFT': INTRADAY_CONT_ATRSLSHIFT_PARAMS_OPT_CONFIGS,
@@ -699,5 +783,7 @@ STRATEGY_OPT_CONFIG_MAP = {
     'INTRADAY_BREAKOUT_CSTICK': INTRADAY_BKOUT_CSTICK_PARAMS_OPT_CONFIGS,
     'INTRADAY_RANGE_BREAKOUT': INTRADAY_RANGE_BKOUT_PARAMS_OPT_CONFIGS,
     'INTRADAY_WILLR_BREAKOUT': INTRADAY_WILLR_BKOUT_PARAMS_OPT_CONFIGS,
+    'INTRADAY_KELTNER_BREAKOUT': INTRADAY_KELTNER_BKOUT_PARAMS_OPT_CONFIGS,
+    'INTRADAY_FISHER_CROSSOVER': INTRADAY_FISHER_CROSSOVER_PARAMS_OPT_CONFIGS,
     'INTRADAY_HA_CCI': INTRADAY_HA_CCI_PARAMS_OPT_CONFIGS,
 }

@@ -58,7 +58,7 @@ HEROMOTOC_OPTIONS_CONFIG = {
 }
 
 RELIANCE_OPTIONS_CONFIG = {
-    'contract_id': 518269438,
+    'contract_id': 44652000,
     'strike_gap': 20,
     'min_lot_size': 250
 }
@@ -581,7 +581,7 @@ BANKBAROD_OPTIONS_CONFIG = {
 
 SBIN_OPTIONS_CONFIG = {
     'contract_id': 173418084,
-    'strike_gap': 5,
+    'strike_gap': 10,   #its actually 5 but thees a lot more liquidity at the 10 levels
     'min_lot_size': 1500,
 }
 
@@ -807,6 +807,30 @@ ONGC_OPTIONS_CONFIG = {
     'min_lot_size': 3850,
 }
 
+DELTACORP_OPTIONS_CONFIG = {
+    'contract_id': 56984039,
+    'strike_gap': 5,
+    'min_lot_size': 2300,
+}
+
+CANFINHOM_OPTIONS_CONFIG = {
+    'contract_id': 291955611,
+    'strike_gap': 10,
+    'min_lot_size': 975,
+}
+
+TATACOMM_OPTIONS_CONFIG = {
+    'contract_id': 44652159,
+    'strike_gap': 20,
+    'min_lot_size': 500,
+}
+
+NAVINFLUO_OPTIONS_CONFIG = {
+    'contract_id': 282656828,
+    'strike_gap': 100,
+    'min_lot_size': 225,
+}
+
 CCY_OPTIONS_CONFIG = {
     'min_lot_size': 1000,
     'multiplier': 1000,
@@ -947,6 +971,10 @@ IB_FNO_CONFIG = {
     'TRENT': TRENT_OPTIONS_CONFIG,
     'ASTRAL': ASTRAL_OPTIONS_CONFIG,
     'ONGC': ONGC_OPTIONS_CONFIG,
+    'DELTACORP': DELTACORP_OPTIONS_CONFIG,
+    'CANFINHOM': CANFINHOM_OPTIONS_CONFIG,
+    'TATACOMM': TATACOMM_OPTIONS_CONFIG,
+    'NAVINFLUO': NAVINFLUO_OPTIONS_CONFIG,
     'EURINR': CCY_OPTIONS_CONFIG,
     'GBPINR': CCY_OPTIONS_CONFIG,
     'JPYINR': CCY_OPTIONS_CONFIG,

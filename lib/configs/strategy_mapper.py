@@ -21,6 +21,7 @@ STRATEGY_MAP_TEMP = {
     'INTRADAY_TREND_HEIKIN_3': 'intraday_trend_capture',
     'INTRADAY_MA': 'intraday_ma',
     'INTRADAY_MAC': 'intraday_ma',
+    'INTRADAY_MAC_2PERIOD': 'intraday_ma',
     'INTRADAY_MACD': 'intraday_ma',
     'INTRADAY_MACD_TP_SL': 'intraday_ma',
     'INTRADAY_MAC_SL': 'intraday_ma',
@@ -30,6 +31,8 @@ STRATEGY_MAP_TEMP = {
     'INTRADAY_PULLBACK_CUMUL_RSI': 'intraday_pullback',
     'INTRADAY_PULLBACK_BB': 'intraday_pullback',
     'INTRADAY_PULLBACK_CSTICK_REV': 'intraday_pullback',
+    'INTRADAY_PULLBACK_PRICECHANGE': 'intraday_pullback',
+    'INTRADAY_KELTNER_REVERSAL': 'intraday_pullback',
     'INTRADAY_OVERTRADE_RSI': 'intraday_overtrade',
     'INTRADAY_OVERTRADE_CUMUL_RSI': 'intraday_overtrade',
     'INTRADAY_OVERTRADE_RSI_CSTICK_REV': 'intraday_overtrade',
@@ -39,12 +42,16 @@ STRATEGY_MAP_TEMP = {
     'INTRADAY_CONTINUATION_ATRTP': 'intraday_trend_continuation',
     'INTRADAY_CONTINUATION_ATRSLSHIFT': 'intraday_trend_continuation',
     'INTRADAY_BB': 'intraday_pullback',
+    'INTRADAY_BB_REVERSAL': 'intraday_pullback',
+    'INTRADAY_BB_REVERSAL_V2': 'intraday_pullback',
     'INTRADAY_HA_CCI': 'intraday_overtrade',
     'INTRADAY_BREAKOUT_HILO': 'intraday_breakout',
     'INTRADAY_BREAKOUT_CSTICK': 'intraday_breakout',
     'INTRADAY_DBLBREAKOUT_CSTICK': 'intraday_breakout',
     'INTRADAY_RANGE_BREAKOUT': 'intraday_breakout',
     'INTRADAY_WILLR_BREAKOUT': 'intraday_breakout',
+    'INTRADAY_FISHER_CROSSOVER': 'intraday_breakout',
+    'INTRADAY_KELTNER_BREAKOUT': 'intraday_breakout',
     'FUTURES_SPREAD_STATARB': 'futures_spread_statarb'
 }
 

@@ -9,14 +9,15 @@ from lib.configs.directory_names import STRATEGY_RUN_BASE_PATHS
 import pandas as pd
 import numpy as np
 import datetime
+from lib.utils import utils
 from talib.abstract import EMA, ROCP, MACD, ATR
 
 class INTRADAY_MA(INTRADAY_BASE):
     db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_MA']
     excl_attr_store = ['db_cache_mkt', 'last_processed_time', 'db_cache_algo']
         
-    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_window=None, on_heikin_ashi=None, eod_sqoff=True, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None):
-        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app)
+    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_window=None, on_heikin_ashi=None, eod_sqoff=True, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None, use_synthetic_options=False):
+        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app, use_synthetic_options)
         self.trade_state = INTRADAY_MA.TRADE_STATES.Start
         self.ema_window = ema_window
         self.on_heikin_ashi = on_heikin_ashi or False
@@ -26,35 +27,14 @@ class INTRADAY_MA(INTRADAY_BASE):
         self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
         self.ticker_to_conid = {}
         
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        #data = self.extended_mkt.loc[dt]
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
+    def _update_indicators_to_publish(self, data):
         self.indicators_to_publish['EMA'] = data['EMA']
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade:            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
+        if self.use_synthetic_options:
+            ticker = self.tickers[0]
+            self.indicators_to_publish['opt_strike'] = self.synthetic_options_data['opt_strike']
+            self.indicators_to_publish['opt_type'] = self.synthetic_options_data['opt_type']
+            self.indicators_to_publish['old_price'] = self.synthetic_options_data['opt_price']
+            self.indicators_to_publish['live_price'] = self.live_prices[ticker]
         
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
@@ -99,7 +79,6 @@ class INTRADAY_MA(INTRADAY_BASE):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -164,37 +143,11 @@ class INTRADAY_MAC(INTRADAY_MA):
         self._state_vars = {'prev_state': None, 'entry_signal': None, 'entry_day': None, 'entry_hour': None, 'sod_signal': None}
         self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
         self.ticker_to_conid = {}
-        
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
+ 
+    def _update_indicators_to_publish(self, data):
+        self._update_statevar_based_indicators(isnone=True)
         self.indicators_to_publish['EMA_short'] = data['EMA_short']
         self.indicators_to_publish['EMA_long'] = data['EMA_long']
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade and ~np.isnan(self.indicators_to_publish['EMA_long']):            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-            self._update_statevar_based_indicators(isnone=True)
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
         
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
@@ -283,7 +236,6 @@ class INTRADAY_MAC(INTRADAY_MA):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -329,6 +281,155 @@ class INTRADAY_MAC(INTRADAY_MA):
             return True
         
         return False
+    
+class INTRADAY_MAC_2PERIOD(INTRADAY_MA):
+    db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_MAC_2PERIOD']
+    eod_measure_min = 15
+    
+    def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_window_short=None, ema_window_long=None, sl_perc=None, carry_fwd_sl=False, side_restriction=None, rescale_shorts=False, add_transaction_costs=False, inst_delta=1.0, app=None):
+        INTRADAY_BASE.__init__(self, identifier, initial_capital, run_bars_since_sod, tickers, rescale_shorts, None, add_transaction_costs, inst_delta, app)
+        self.trade_state = INTRADAY_MA.TRADE_STATES.Start
+        self.ema_window_short = ema_window_short or 3
+        self.ema_window_long = ema_window_long or 5
+        self.sl_perc = sl_perc
+        self.carry_fwd_sl = carry_fwd_sl
+        self.side_restriction = side_restriction
+        self.min_bars_to_trade = 2
+        self._state_vars = {'prev_state': None, 'entry_signal': None, 'entry_price': None, 'eod_prices': [], 'first_trade': True, 'sl_price': None, 'eod_measure_done_for_day': False, 'trade_day': False}
+        self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
+        self.ticker_to_conid = {}
+        
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['entry_price'] = None
+        self.indicators_to_publish['ema_long'] = None
+        self.indicators_to_publish['ema_short'] = None
+        self.indicators_to_publish['sl_price'] = None
+        
+    def _generate_trades_on_indicators(self, data, dt, isEOD=False):
+        self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
+        ticker = self.tickers[0]
+        signal = None
+        is_eod_measure_bar = pd.Timestamp(dt).hour == 15 and pd.Timestamp(dt).minute >= self.eod_measure_min and not self._state_vars['eod_measure_done_for_day']
+        price_close = data['{} Close'.format(ticker)]
+        if isEOD:
+            self._state_vars['eod_prices'].append(price_close)
+            curr_prices_for_ema = np.array(self._state_vars['eod_prices'])[-self.ema_window_long*5:]
+        else:
+            curr_prices_for_ema = np.array(self._state_vars['eod_prices'][:] + [price_close])[-self.ema_window_long*5:]
+        ema_short = EMA(curr_prices_for_ema, timeperiod=self.ema_window_short)[-1]
+        ema_long = EMA(curr_prices_for_ema, timeperiod=self.ema_window_long)[-1]
+        buy_signal = ema_short > ema_long
+        sell_signal = ema_short < ema_long
+        buy_squareoff = self._state_vars['entry_price'] is not None and self._state_vars['sl_price'] is not None and  price_close < self._state_vars['sl_price'] and not self._state_vars['eod_measure_done_for_day']
+        sell_squareoff = self._state_vars['entry_price'] is not None and self._state_vars['sl_price'] is not None and  price_close > self._state_vars['sl_price'] and not self._state_vars['eod_measure_done_for_day']
+        
+        if self.side_restriction == 1:
+            buy_squareoff = buy_squareoff or sell_signal
+            sell_signal, sell_squareoff = False, False
+        elif self.side_restriction == -1:
+            sell_squareoff = sell_squareoff or buy_signal
+            buy_signal, buy_squareoff = False, False
+        
+        if not self._state_vars['eod_measure_done_for_day']:
+            if self.trade_state == self.TRADE_STATES.Intraday_squareoff:
+                #if buy_signal and (self._state_vars['first_trade'] or is_eod_measure_bar):
+                if buy_signal and is_eod_measure_bar:
+                    signal = 1
+                    self.trade_state = self.TRADE_STATES.Regular_buy
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+                    self._state_vars['sl_price'] = (1 - self.sl_perc) * price_close if self.sl_perc is not None else None
+                    self._state_vars['trade_day'] = True
+                    #self._state_vars['first_trade'] = False
+                #elif sell_signal and (self._state_vars['first_trade'] or is_eod_measure_bar):
+                elif sell_signal and is_eod_measure_bar:
+                    signal = -1
+                    self.trade_state = self.TRADE_STATES.Regular_sell
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+                    self._state_vars['sl_price'] = (1 + self.sl_perc) * price_close if self.sl_perc is not None else None
+                    self._state_vars['trade_day'] = True
+                    #self._state_vars['first_trade'] = False
+            elif self.trade_state == self.TRADE_STATES.Regular_buy:
+                if buy_squareoff and not is_eod_measure_bar:
+                    signal = 0
+                    self.trade_state = self.TRADE_STATES.Intraday_squareoff
+                    self.bars_since_trade = None
+                    self._state_vars['entry_price'] = None
+                    self._state_vars['sl_price'] = None
+                elif sell_signal and (not self._state_vars['trade_day'] or is_eod_measure_bar):
+                    signal = -1
+                    self.trade_state = self.TRADE_STATES.Regular_sell
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+                    self._state_vars['sl_price'] = (1 + self.sl_perc) * price_close if self.sl_perc is not None else None
+                    self._state_vars['trade_day'] = True
+                else:
+                    self.bars_since_trade = self.bars_since_trade + 1
+            elif self.trade_state == self.TRADE_STATES.Regular_sell:
+                if sell_squareoff and not is_eod_measure_bar:
+                    signal = 0
+                    self.trade_state = self.TRADE_STATES.Intraday_squareoff
+                    self.bars_since_trade = None
+                    self._state_vars['entry_price'] = None
+                    self._state_vars['sl_price'] = None
+                elif buy_signal and (not self._state_vars['trade_day'] or is_eod_measure_bar):
+                    signal = 1
+                    self.trade_state = self.TRADE_STATES.Regular_buy
+                    self.bars_since_trade = 1
+                    self._state_vars['entry_price'] = price_close
+                    self._state_vars['sl_price'] = (1 - self.sl_perc) * price_close if self.sl_perc is not None else None
+                    self._state_vars['trade_day'] = True
+                else:
+                    self.bars_since_trade = self.bars_since_trade + 1
+            else:
+                signal = None
+                print("unknown condition at state:{} at {}".format(self.trade_state, dt))
+        else:
+            signal = None
+                        
+        if is_eod_measure_bar:
+            self._state_vars['eod_measure_done_for_day'] = True
+            if not self.carry_fwd_sl:
+                self._state_vars['sl_price'] = None
+                self._state_vars['entry_price'] = None
+        
+        if isEOD:
+            #for next day
+            self._state_vars['eod_measure_done_for_day'] = False
+            self._state_vars['trade_day'] = False
+            
+        self.indicators_to_publish['Signal'] = signal
+        self.indicators_to_publish['trade_state'] = self.trade_state
+        self.indicators_to_publish['entry_price'] = self._state_vars['entry_price']
+        self.indicators_to_publish['ema_long'] = ema_long
+        self.indicators_to_publish['ema_short'] = ema_short
+        self.indicators_to_publish['sl_price'] = self._state_vars['sl_price']
+        
+        is_trade_bar = False
+        for ticker in self.tickers:
+            prev_wts = self.weights[ticker]
+            self.weights[ticker] = signal if signal is not None else self.weights[ticker]
+            #assuming only 1 ticker here
+            is_trade_bar = False if prev_wts == self.weights[ticker] else True
+    
+        return is_trade_bar
+        
+    def prepare_strategy_attributes(self, dt=None):        
+        self.extended_mkt = self.db_cache_mkt.copy()
+        #special handling incase particular tickers dont have data as of a given day
+        self.extended_mkt.fillna(method='ffill', inplace=True)
+        day_in_pydt = pd.Series(np.vectorize(lambda x: x.day)(pd.Series(self.extended_mkt.index.values).map(datetime.datetime.date)))
+        self.extended_mkt['isEOD'] = (day_in_pydt != day_in_pydt.shift(-1)).values
+        if dt is not None:
+            #hack for live run
+            self.extended_mkt.loc[dt, 'isEOD'] = False
+        ticker = self.tickers[0]
+        
+        self.extended_mkt['{} returns'.format(ticker)] = ROCP(self.extended_mkt['{} Close'.format(ticker)], timeperiod=1)
+        self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
+        
+    
         
 class INTRADAY_MACD(INTRADAY_MA):
     db_loc = STRATEGY_RUN_BASE_PATHS['INTRADAY_MACD']
@@ -345,35 +446,9 @@ class INTRADAY_MACD(INTRADAY_MA):
         self._state_vars = {'prev_state': None}
         self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
         self.ticker_to_conid = {}
-        
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
+
+    def _update_indicators_to_publish(self, data):
         self.indicators_to_publish['MACD_hist'] = data['MACD_hist']
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade and ~np.isnan(self.indicators_to_publish['MACD_hist']):            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
         
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
@@ -423,7 +498,6 @@ class INTRADAY_MACD(INTRADAY_MA):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -455,12 +529,11 @@ class INTRADAY_MAC_SL(INTRADAY_MAC):
     def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_window_short=None, ema_long_window_mult=None, rescale_shorts=False, stop_loss=None, add_transaction_costs=False, inst_delta=1.0, app=None):
         super().__init__(identifier, initial_capital, run_bars_since_sod, tickers, ema_window_short, ema_long_window_mult, rescale_shorts, add_transaction_costs, inst_delta, app)
         self.stop_loss = stop_loss
-        
-    def update_indicators(self, dt=None):
-        #data = self.extended_mkt.loc[dt]
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
+     
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['EMA_short'] = data['EMA_short']
+        self.indicators_to_publish['EMA_long'] = data['EMA_long']
         self.indicators_to_publish['ATR'] = data['ATR']
-        super().update_indicators(dt)
     
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
@@ -514,7 +587,6 @@ class INTRADAY_MAC_SL(INTRADAY_MAC):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -528,12 +600,11 @@ class INTRADAY_MAC_MA(INTRADAY_MAC):
     def __init__(self, identifier, initial_capital=1000000, run_bars_since_sod=0, tickers=None, ema_window_cutoff=None, ema_window_short=None, ema_long_window_mult=None, rescale_shorts=False, stop_loss=None, add_transaction_costs=False, inst_delta=1.0, app=None):
         super().__init__(identifier, initial_capital, run_bars_since_sod, tickers, ema_window_short, ema_long_window_mult, None, None, None, None, rescale_shorts, add_transaction_costs, inst_delta, app)
         self.ema_window_cutoff = ema_window_cutoff
-        
-    def update_indicators(self, dt=None):
-        #data = self.extended_mkt.loc[dt]
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
+
+    def _update_indicators_to_publish(self, data):
+        self.indicators_to_publish['EMA_short'] = data['EMA_short']
+        self.indicators_to_publish['EMA_long'] = data['EMA_long']
         self.indicators_to_publish['EMA_cutoff'] = data['EMA_cutoff']
-        super().update_indicators(dt)
     
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         self.trade_state = INTRADAY_MA.TRADE_STATES.Intraday_squareoff if self.trade_state == INTRADAY_MA.TRADE_STATES.Start else self.trade_state
@@ -588,7 +659,6 @@ class INTRADAY_MAC_MA(INTRADAY_MAC):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):
@@ -689,7 +759,6 @@ class INTRADAY_MACD_TP_SL(INTRADAY_MACD):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
     
     def prepare_strategy_attributes(self, dt=None):
@@ -708,37 +777,11 @@ class INTRADAY_MACD_TP_SL(INTRADAY_MACD):
         self.extended_mkt['MACD_hist_prev'] = self.extended_mkt['MACD_hist'].shift(1)
         self.extended_mkt['ATR'] = ATR(self.extended_mkt['{} High'.format(ticker)], self.extended_mkt['{} Low'.format(ticker)], self.extended_mkt['{} Close'.format(ticker)])
         self.extended_mkt_dict = self.extended_mkt.to_dict(orient='index')
-        
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
+
+    def _update_indicators_to_publish(self, data):
         self.indicators_to_publish['MACD_hist'] = data['MACD_hist']
         self.indicators_to_publish['MACD_hist_prev'] = data['MACD_hist_prev']
         self.indicators_to_publish['ATR'] = data['ATR']
         self.indicators_to_publish['entry_price'] = None
         self.indicators_to_publish['trailing_price'] = None
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade and ~np.isnan(self.indicators_to_publish['MACD_hist']):            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
     

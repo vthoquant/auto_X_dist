@@ -272,38 +272,6 @@ class INTRADAY_HA_CCI(INTRADAY_BASE):
         self.trade_contracts = {self.tickers[0]: {'long': None, 'short': None}}
         self.ticker_to_conid = {}
         
-    def update_indicators(self, dt=None):
-        #assume capital requirement for short position is the same as going long
-        self.run_bars_since_sod = self.run_bars_since_sod + 1
-        self.units_whole_prev = self.units_whole.copy()
-        is_trade_bar = False
-        ticker = self.tickers[0] #only 1 ticker in this strategy
-        #data = self.extended_mkt.loc[dt]
-        data = self.extended_mkt_dict[pd.Timestamp(dt)]
-        price = data['{} Close'.format(ticker)]
-        returns = data['{} returns'.format(ticker)]
-        self._update_indicators_to_publish(data)
-        self.live_prices[ticker] = price if ~np.isnan(price) else -1.0
-        self._state_vars['prev_state'] = self.trade_state
-        if self.run_bars_since_sod >= self.min_bars_to_trade:            
-            #update per asset capital based on c-c returns
-            if self.units_whole[ticker] >= 0:
-                #if long then per_asset_capital increase is directly proportional to returns
-                self.per_asset_capital[ticker] = self.per_asset_capital[ticker] * (1+self.inst_delta*returns) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            else:
-                #if short then per asset capital increase is inversely proportional to returns
-                self.per_asset_capital[ticker] = max(self.per_asset_capital[ticker] * (1-self.inst_delta*returns), 0.0) if ~np.isnan(returns) else self.per_asset_capital[ticker]
-            
-            self.current_capital = np.array(list(self.per_asset_capital.values())).sum()
-            is_trade_bar = self._generate_trades_on_indicators(data, dt, data['isEOD'])
-        else:
-            self.indicators_to_publish['Signal'] = None
-            self.indicators_to_publish['trade_state'] = self.trade_state
-            self.indicators_to_publish['is_buy_stopped'] = None
-            self.indicators_to_publish['is_sell_stopped'] = None
-                
-        self._update_quick_bt_attrs(dt, is_trade=is_trade_bar)
-        
     def _update_indicators_to_publish(self, data):
         self.indicators_to_publish['Open_HA'] = data['Open_HA']
         self.indicators_to_publish['High_HA'] = data['High_HA']
@@ -314,6 +282,10 @@ class INTRADAY_HA_CCI(INTRADAY_BASE):
         self.indicators_to_publish['trailing_price'] = self._state_vars['trailing_price']
         self.indicators_to_publish['CCI'] = data['CCI']
         self.indicators_to_publish['ATR'] = data['ATR']
+        
+        #pre-fill
+        self.indicators_to_publish['is_buy_stopped'] = None
+        self.indicators_to_publish['is_sell_stopped'] = None
         
     def _generate_trades_on_indicators(self, data, dt, isEOD=False):
         signal, buy_signal, buy_squareoff, sell_signal, sell_squareoff = self._generate_trade_conditions(data, dt)
@@ -422,7 +394,6 @@ class INTRADAY_HA_CCI(INTRADAY_BASE):
             #assuming only 1 ticker here
             is_trade_bar = False if prev_wts == self.weights[ticker] else True
     
-        self._allocate_capital_by_weights()
         return is_trade_bar
         
     def prepare_strategy_attributes(self, dt=None):

@@ -260,10 +260,11 @@ INTDY_MA_BT_PARAMS = {
     'params': {
         'rescale_shorts': False,
         'ema_window': 100,
-        'on_heikin_ashi': True,
-        'eod_sqoff': False,
-        'add_transaction_costs': True,
-        'inst_delta': 1.0
+        'on_heikin_ashi': False,
+        'eod_sqoff': True,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0,
+        'use_synthetic_options': True
     }
 }
 
@@ -276,6 +277,20 @@ INTDY_MAC_BT_PARAMS = {
         'add_transaction_costs': True,
         'wait_for_crossover': False,
         'restrict_trade_time': False,
+        'inst_delta': 1.0
+    }
+}
+
+INTDY_MAC_2P_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_MAC_2PERIOD',
+    'params': {
+        'rescale_shorts': False,
+        'ema_window_short': 3,
+        'ema_window_long': 5,
+        'sl_perc': 0.005,
+        'carry_fwd_sl': False,
+        'side_restriction': 1, 
+        'add_transaction_costs': False,
         'inst_delta': 1.0
     }
 }
@@ -341,9 +356,9 @@ INTDY_PULLBACK_BT_PARAMS = {
         'rsi_period': 2, 
         'rsi_entry': (10, 90),
         'rsi_exit': (40, 60),
-        'max_holding': 5,
-        'trend_baseline': 100,
-        'side_restriction': 1,
+        'max_holding': 3,
+        'trend_baseline': None,
+        'side_restriction': None,
         'add_transaction_costs': True,
         'restrict_trade_time': False,
         'inst_delta': 0.5
@@ -407,6 +422,36 @@ INTDY_PULLBACK_CSTICK_REV_BT_PARAMS = {
         'side_restriction': None,
         'add_transaction_costs': True,
         'restrict_trade_time': False,
+        'inst_delta': 0.5
+    }
+}
+
+INTDY_PULLBACK_PRICECHANGE_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_PULLBACK_PRICECHANGE',
+    'params': {
+        'rescale_shorts': False,
+        'change_period': 2, 
+        'atr_multiplier': 1,
+        'sl_atr': 1,
+        'max_holding': 5,
+        'trend_baseline': 50,
+        'side_restriction': 1,
+        'add_transaction_costs': True,
+        'inst_delta': 0.5
+    }
+}
+
+INTDY_KELTNER_REV_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_KELTNER_REVERSAL',
+    'params': {
+        'rescale_shorts': False,
+        'ema_period': 20, 
+        'atr_multiplier': 2,
+        'sl_atr': 0.5, 
+        'bkout_candle_size': 0.5, 
+        'reentry_wait': 1,
+        'add_transaction_costs': True,
+        'use_synthetic_options': False,
         'inst_delta': 0.5
     }
 }
@@ -553,6 +598,33 @@ INTDY_BB_BT_PARAMS = {
     }
 }
 
+INTDY_BB_REVERSAL_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_BB_REVERSAL',
+    'params': {
+        'rescale_shorts': False,
+        'bb_period': 20, 
+        'bb_stdev': 2.0,
+        'max_holding': 2,
+        'add_transaction_costs': True,
+        'inst_delta': 0.5
+    }
+}
+
+INTDY_BB_REVERSAL_V2_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_BB_REVERSAL_V2',
+    'params': {
+        'rescale_shorts': False,
+        'bb_period': 20, 
+        'bb_stdev': 2.0,
+        'sl_atr': 0.5, 
+        'bkout_candle_size': 0.5, 
+        'reentry_wait': 1,
+        'add_transaction_costs': True,
+        'use_synthetic_options': False,
+        'inst_delta': 0.5
+    }
+}
+
 INTDY_BKOUT_HILO_BT_PARAMS = {
     'strategy_name': 'INTRADAY_BREAKOUT_HILO',
     'params': {
@@ -561,7 +633,7 @@ INTDY_BKOUT_HILO_BT_PARAMS = {
         'tp_atr': 5,
         'is_trailing_sl': False,
         'false_breakout': True,
-        'add_transaction_costs': True,
+        'add_transaction_costs': False,
         'inst_delta': 1.0
     }
 }
@@ -587,11 +659,14 @@ INTDY_BKOUT_CSTICK_BT_PARAMS = {
     'params': {
         'rescale_shorts': False,
         'sl_atr': 1,
-        'tp_atr': 1,
-        'is_trailing_sl': False,
-        'lookback_period': 1,
-        'add_transaction_costs': False,
-        'inst_delta': 1.0
+        'tp_atr': 10,
+        'lookback_period': 70,
+        'side_restriction': None,
+        'is_trailing_sl': True,
+        'trail_scale': 0.5,
+        'add_transaction_costs': True,
+        'use_synthetic_options': False,
+        'inst_delta': 0.5
     }
 }
 
@@ -600,11 +675,12 @@ INTDY_DBLBKOUT_CSTICK_BT_PARAMS = {
     'params': {
         'rescale_shorts': False,
         'sl_atr': 0.1,
-        'tp_atr': 2,
+        'tp_atr': 10,
         'is_trailing_sl': False,
-        'lookback_period': 10,
-        'eod_lookback_period': 3,
+        'lookback_period': 5,
+        'eod_lookback_period': 2,
         'add_transaction_costs': False,
+        'use_synthetic_options': True,
         'inst_delta': 1.0
     }
 }
@@ -630,8 +706,37 @@ INTDY_WILLR_BKOUT_BT_PARAMS = {
         'willr_sell': -80,
         'willr_period': 30, 
         'entry_scale': 0, 
-        'exit_scale': 0.618, 
+        'exit_scale': 0, 
         'eod_squareoff': False,
+        'add_transaction_costs': False,
+        'use_synthetic_options': True,
+        'inst_delta': 1.0
+    }
+}
+
+INTDY_KELTNER_BKOUT_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_KELTNER_BREAKOUT',
+    'params': {
+        'rescale_shorts': False,
+        'ema_period': 20, 
+        'atr_multiplier': 2,
+        'atr_signal_period': 5, 
+        'sl_level': 0.5, 
+        'trailing_sl_mode': False,
+        'trail_scale': 0.75,
+        'trade_all': True,
+        'add_transaction_costs': True,
+        'use_synthetic_options': True,
+        'inst_delta': 1.0
+    }
+}
+
+INTDY_FISHER_CROSSOVER_BT_PARAMS = {
+    'strategy_name': 'INTRADAY_FISHER_CROSSOVER',
+    'params': {
+        'rescale_shorts': False,
+        'fisher_period': 20,
+        'fisher_mode': 2,
         'add_transaction_costs': False,
         'inst_delta': 1.0
     }
@@ -668,6 +773,7 @@ STRATEGY_BT_CONFIG_MAP = {
     'intraday-trend-heikin3': INTDY_TREND_HEIKIN3_BT_PARAMS,
     'intraday-ma': INTDY_MA_BT_PARAMS,
     'intraday-mac': INTDY_MAC_BT_PARAMS,
+    'intraday-mac-2p': INTDY_MAC_2P_BT_PARAMS,
     'intraday-mac-sl': INTDY_MAC_SL_BT_PARAMS,
     'intraday-mac-ma': INTDY_MAC_MA_BT_PARAMS,
     'intraday-macd': INTDY_MACD_BT_PARAMS,
@@ -677,6 +783,8 @@ STRATEGY_BT_CONFIG_MAP = {
     'intraday-pullback-lb': INTDY_PULLBACK_LB_BT_PARAMS,
     'intraday-pullback-bb': INTDY_PULLBACK_BB_BT_PARAMS,
     'intraday-pullback-cstick-rev': INTDY_PULLBACK_CSTICK_REV_BT_PARAMS,
+    'intraday-pullback-pricechange': INTDY_PULLBACK_PRICECHANGE_BT_PARAMS,
+    'intraday-keltner-reversal': INTDY_KELTNER_REV_BT_PARAMS,
     'intraday-otrade-rsi': INTDY_OT_RSI_BT_PARAMS,
     'intraday-otrade-crsi': INTDY_OT_CUMUL_RSI_BT_PARAMS,
     'intraday-otrade-lb': INTDY_OT_LB_BT_PARAMS,
@@ -686,12 +794,16 @@ STRATEGY_BT_CONFIG_MAP = {
     'intraday-cont-atrtp': INTDY_CONT_ATRTP_BT_PARAMS,
     'intraday-cont-atrslshift': INTDY_CONT_ATRSLSHIFT_BT_PARAMS,
     'intraday-bb': INTDY_BB_BT_PARAMS,
+    'intraday-bb-reversal': INTDY_BB_REVERSAL_BT_PARAMS,
+    'intraday-bb-reversal-v2': INTDY_BB_REVERSAL_V2_BT_PARAMS,
     'intraday-bkout-hilo': INTDY_BKOUT_HILO_BT_PARAMS,
     'intraday-bkout-cstick': INTDY_BKOUT_CSTICK_BT_PARAMS,
     'intraday-dblbkout-cstick': INTDY_DBLBKOUT_CSTICK_BT_PARAMS,
     'intraday-range-bkout': INTDY_RANGE_BKOUT_BT_PARAMS,
     'intraday-willr-bkout': INTDY_WILLR_BKOUT_BT_PARAMS,
+    'intraday-keltner-bkout': INTDY_KELTNER_BKOUT_BT_PARAMS,
     'intraday-ha-cci': INTDY_HA_CCI_BT_PARAMS,
+    'intraday-fisher-crossover': INTDY_FISHER_CROSSOVER_BT_PARAMS,
     'futures-spread-nifty': FUTURES_SPREAD_STATARB_PARAMS,
     'test': PORTFOLIO_MOM_REBAL_BT_PARAMS,
 }

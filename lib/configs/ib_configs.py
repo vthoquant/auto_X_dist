@@ -880,9 +880,10 @@ INTDY_BKOUT_CSTICK_NIFTY = {
     'params': {
         'rescale_shorts': False,
         'sl_atr': 1,
-        'tp_atr': 1,
-        'is_trailing_sl': False,
-        'lookback_period': 1,
+        'tp_atr': 10,
+        'is_trailing_sl': True,
+        'trail_scale': 0.5,
+        'lookback_period': 70,
         'add_transaction_costs': False,
         'inst_delta': 1.0
     },
@@ -891,16 +892,114 @@ INTDY_BKOUT_CSTICK_NIFTY = {
         'client_id': 154,
         'order_config': {
             'inst': 'OPT', # can be OPT, FUT, STK
-            'dir': 'SELL', # only applicable for OPT. can be BUY or SELL
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
             'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
             'order_type': 'MTL',
-            'strike_mode': 'atm_minus',
+            'strike_mode': 'otm',
+            'gap_multiplier': 2,
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '3 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_BKOUT_CSTICK_RELIANCE = {
+    'strategy_name': 'INTRADAY_BREAKOUT_CSTICK',
+    'params': {
+        'rescale_shorts': False,
+        'sl_atr': 0.1,
+        'tp_atr': 10,
+        'is_trailing_sl': False,
+        'lookback_period': 10,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 9,
+        'client_id': 179,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MKT',
+            'strike_mode': 'otm',
+            'gap_multiplier': 4,
         },
     },
     
     'api_data_config': {
         'barSizeSetting': '15 mins',
-        'durationStr': '2 D'
+        'durationStr': '3 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_BKOUT_CSTICK_SBIN = {
+    'strategy_name': 'INTRADAY_BREAKOUT_CSTICK',
+    'params': {
+        'rescale_shorts': False,
+        'sl_atr': 0.1,
+        'tp_atr': 10,
+        'is_trailing_sl': False,
+        'lookback_period': 10,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 9,
+        'client_id': 180,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MKT',
+            'strike_mode': 'otm',
+            'gap_multiplier': 2, #we've doubled the strike gap for sbin so only need 2 instead of 4
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '15 mins',
+        'durationStr': '3 D'
+    },
+    
+    'event_wait_time': 1
+}
+
+INTDY_BKOUT_CSTICK_BANKNIFTY = {
+    'strategy_name': 'INTRADAY_BREAKOUT_CSTICK',
+    'params': {
+        'rescale_shorts': False,
+        'sl_atr': 1,
+        'tp_atr': 10,
+        'is_trailing_sl': True,
+        'trail_scale': 0.5,
+        'lookback_period': 70,
+        'add_transaction_costs': False,
+        'inst_delta': 1.0
+    },
+    'api_attrs': {
+        'historical_data_offset': 86400 * 9,
+        'client_id': 201,
+        'order_config': {
+            'inst': 'OPT', # can be OPT, FUT, STK
+            'dir': 'BUY', # only applicable for OPT. can be BUY or SELL
+            'exp': 'weekly', #only applicable for OPT. can be weekly or monthly
+            'order_type': 'MTL',
+            'strike_mode': 'otm',
+            'gap_multiplier': 4,
+        },
+    },
+    
+    'api_data_config': {
+        'barSizeSetting': '5 mins',
+        'durationStr': '3 D'
     },
     
     'event_wait_time': 1
@@ -1222,6 +1321,9 @@ STRATEGY_IB_CONFIG_MAP = {
     'intraday-trend-bnifty-multi-15m': INTDY_TREND_IB_PARAMS_OPT_TEST_W_BANKNIFTY_multi_15m,
     'intraday-trend-nifty-multi-15m': INTDY_TREND_IB_PARAMS_OPT_TEST_W_NIFTY_multi_15m,
     'intraday-bkout-cstick-nifty-15m': INTDY_BKOUT_CSTICK_NIFTY,
+    'intraday-bkout-cstick-bnifty-15m': INTDY_BKOUT_CSTICK_BANKNIFTY,
+    'intraday-bkout-cstick-reliance-15m': INTDY_BKOUT_CSTICK_RELIANCE,
+    'intraday-bkout-cstick-sbin-15m': INTDY_BKOUT_CSTICK_SBIN,
     'intraday-ha-cci-bnifty-multi-30m': INTDY_HA_CCI_IB_PARAMS_OPT_TEST_W_BNIFTY_multi_15m,
     'intraday-ha-cci-bnifty-sell-multi-30m': INTDY_HA_CCI_IB_PARAMS_OPT_TEST_W_BNIFTY_SELL_multi_15m,
     'intraday-willr-bkout-nifty-sellopt': INTDY_WILLR_BKOUT_NIFTY_SELLOPT,
