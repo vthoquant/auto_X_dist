@@ -221,6 +221,68 @@ the *params* attribute is replaced by the *multi_strategy_params* attribute. Thi
 For the multi-run executable every other attribute such as *api_attrs*, *api_data_config* etc is exactly the same as the single-run executable.
 Multi-run executables are useful when multiple strategies depend upon the same market data. If so then one can limit the number of client connections to the local TWS server to 1 instead of having seperate clients for each strategy
 
+### Advanced Backtesting and Optimization
+auto_X provides the user with various features to help carry out the backtesting assessment under certain real-life constraints. Three features are currently available:-
+- **Re-scale** a short position which is currently running into losses
+- Subtract **transaction costs**, such as taxes, brokerages and slippages, from the gross PnL of the trade
+- Trade on **synthetic options** to get an idea of the impact of convexity and time decay on you trades
+
+#### Re-scale shorts
+For cash-market trades, the amount of margin one requires to hold a long position is typically equal to the spot price of the position. Therefore, any increase (or decrease) in the spot value of the underlying doesnt lead to any margin excess (or shortfall)
+because the change in margin is exactly offset by the change in underlying value. However for short cash-market trades this becaomes a bit tricky. Firstly, the amount of margin required to be set aside for short trades is not necessarily standard. In our platform for simplicity
+we assume that the margin required is exactly equal to the value of the position that is being shorted i.e. shorting trades would lead to no instantaneous cash credit. Subsequently if the value of the underlying goes up then the value of the short position goes down
+by the same amount. Consequently, we would now require a higher margin to maintain the same short position (eg: we short 1 stock worth $100 and have to put aside $100 as margin. In the next instance suppose the stock goes up to $110, our portfolio would drop in value to $90.
+However, we would need to put in $20 more to ensure that the prevailing margin requirement of $110 is maintained). There are two ways in which this issue could be circumvented. One is by scaling down the short position so that the amount we have shorted is exactly equal to our
+current portfolio value. The second is to take up a loan to offset the margin shortfall. The *rescale_shorts* parameter that can be passed into any strategy object as a parameter (along-with other strategy-specific parameters) would control the strategy behaviour for shorts. A parameter value of True would lead to the position
+size being re-adjusted whereas a parameter value of False would lead to an interest-free loan being taken to offset the shortfall
+
+#### Transaction costs
+PnL computed as part of a vanilla backtesting run is never the PnL that would actually have been realized during that period. The reason is that one typically incurrs additional costs as part of trading including but not limited to exchange charges, taxes, brokerages and slippages. 
+We therefore provide a mechanism to the user to be able to add these costs into their backtesting run so that the final results are as closely representative of the actual realized PnL as possible. This feature would prove all the more useful for relatively higher frequency strategies which depend
+on executing a large number of trades in a day (>5) or even scalping-style strategies where the targets and stop-losses are set very tight.
+
+In order to enable this feature we first ensure that we configure the correct costs which are to be applied. Different costs can be applied seperately to options, futures and stock. We can also specify underlying-specific costs in each category. The values can be specified in
+the [transaction_costs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/transaction_costs.py) config file. As mentioned earlier, the user can specify a different set of costs for options (under the **OPTIONS_COSTS_CONFIG** variable) and for futures (under the **FUTURES_COSTS_CONFIG** variable).
+Under each variable one can find keys corresponding to the underlying-specific costs and also default costs in-case nothing is specifided. Against each item, one can specify **slippage_perc** (slippage as a percentage of execution price), **slippage_fixed** (slippage as a fixed cost per unit traded), **brokerage_fixed**
+(fixed brokerage per trade), **brokerage_perc** (brokerage as a percentage of traded value) and **tax_perc** (tax as a percentage of traded value). For options-based trading, we can additionally specify an **options_config**, with sub-keys **ttm** (time-to-maturity) and **imp_vol** (implied vol) which would be used to 
+compute an approximate ATM options price. Slippages and taxes would then be computed on this approximate price.
+
+Once the costs are correclty documented in the config file, we would also addiitonally require to switch a toggle ON or OFF depending upon whether we require these charges to be applied in our backtesting or optimization. This is controlled via the **add_transaction_costs** parameter that is to be passed along-with other strategy parameters
+into the strategy object. This parameter can take a boolean as its input
+
+#### Synthetic Options
+This feature has been added to allow the user to get an idea about the impact of convexity and time-decay that trading a non-linear instrument such as an option can have on your strategy and compare the benefits or drawbacks of trading an option vs linear instruments such as futures or cash. Here, we essentially assume that we trade in options
+but given that we may not actually have access to historical options data, we compute our own synthetic options data. For indices we assume we trade in weekly options expiring on thursday while on the other hand for stocks we assume we trade in monthly options expiring on the last thursday of the month. The time to expiry is then computed on-the-fly depending
+on the current backtesting time. A risk-free rate is also specified in a config, details of which are provided below. The distance from ATM that we would like to trade on can also be specified in one of those configs. The implied vol used in the price computation is basically a premium added on top of the historical vol. The historical vol is computed using the
+conventional method over 30 days whereas the vol premium to be used for our backtesting would be specified in the config, details of which can be found below. Once these inputs are computed the synthetic price is then computed via the usual Black Scholes formula. 
+
+Enabling this feature would significantly increase the runtime of the backtest. Therfore it is advisable to only turn this on when running single backtests and not optimizations over hundreds of backtests!
+
+The setup needs to be carried out in the [synth_options_config](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/synth_options_config.py)file. There are two variable categories that are of importance. One is a global specification and the other is the asset specification.
+The global specification mapping can be found in the **OPTION_TRADE_CHOICES** variable while the asset specification mapping can be found in the **TICKER_TO_OPT_CONFIG** variable. 
+
+Each asset specification contains certain components that need to be specified:- 
+- The **imp_vol** which is an implied vol floor to be applied to the underlying. 
+- The **rr** which is the risk-free rate and 
+- The **strike_gap** which is the rupee-value gap between adjacent strikes that are 
+openly traded in the market. 
+
+The global specification contains another set of components that need to be specified:-
+- The **short_options_or_fut** parameter. A value equal to True would mean that we would like to run our synthetic options backtest on futures or short options. The reason these two are clibbed together is the margin requirement which is almost comparable between the two
+ - **is_fut** is used when the value of the above parameter is True. This is to ensure that we end up computing the correct synthetic price during backtesting. A parameter value of False would ensure that we correctly incorporate theta-decay and convexity adjustments to our
+futures price
+- **short_opt_lev** is the approximate leverage on capital we obtain when we trade futures or short options. This is applicable only when the **short_options_or_fut** parameter is set to True. For example a leverage of 5 would mean that a Rs 100000 margin would ensure that we could 
+obtain a total notional exposure via futures or short options of Rs 500000
+- The **imp_vol_mult** which is a multiplier that can be applied to the floor which is specified in the above asset specification.
+- The **vol_premium** which is the volatility premium that would be added
+- **max_lev_alloc** is only applicable for long options i.e. when the **short_options_or_fut** parameter is set to False. This parameter controls the fraction of our total capital that we allocate to buying options. For example a value of 0.05 would mean that we only set aside 5% of
+our capital to buying options. The reason why this parameter is necessary is because a very large allocation would almost always ensure that we run a very high risk of ruin as the probability of an OTM option going to 0 at expiry is high. 
+- **strike_gap_mult** is the distance away from the ATM that we would like our synthetic prices to be computed. This can take both negative (OTM) and positive (ITM) values. This integer value is multiplied by the **strike_gap** parameter to get the actual distance in rupees for a given underlying.  
+on top of the 30-day historical vol. 
+
+Once the specifications are filled-in correctly in the config file, we would then need to toggle a switch to turn ON or OFF the synthetic options feature. This parameter is called **use_synthetic_options** and is to be passed-in just as any other strategy parameter.
+One can also publish various relevant metrics in the -algo file, such as the prevailing call and put strikes that was traded along-with its option type and current price so that the user can run a manual debug and ensure that the syuunthetic options usage is correct
+
 ## Data format
 
 As of writing this, the historical candlestick data used for the purpose of backtesting and optimization is expected to be in a format which is in-line with the one seen in the [test_data](https://github.com/vthoquant/auto_X_dist/tree/main/test_data/) folder. 
