@@ -243,11 +243,11 @@ on executing a large number of trades in a day (>5) or even scalping-style strat
 
 In order to enable this feature we first ensure that we configure the correct costs which are to be applied. Different costs can be applied seperately to options, futures and stock. We can also specify underlying-specific costs in each category. The values can be specified in
 the [transaction_costs](https://github.com/vthoquant/auto_X_dist/blob/main/lib/configs/transaction_costs.py) config file. As mentioned earlier, the user can specify a different set of costs for options (under the **OPTIONS_COSTS_CONFIG** variable) and for futures (under the **FUTURES_COSTS_CONFIG** variable).
-Under each variable one can find keys corresponding to the underlying-specific costs and also default costs in-case nothing is specifided. Against each item, one can specify **slippage_perc** (slippage as a percentage of execution price), **slippage_fixed** (slippage as a fixed cost per unit traded), **brokerage_fixed**
-(fixed brokerage per trade), **brokerage_perc** (brokerage as a percentage of traded value) and **tax_perc** (tax as a percentage of traded value). For options-based trading, we can additionally specify an **options_config**, with sub-keys **ttm** (time-to-maturity) and **imp_vol** (implied vol) which would be used to 
+Under each variable one can find keys corresponding to the underlying-specific costs and also default costs in-case nothing is specifided. Against each item, one can specify *slippage_perc* (slippage as a percentage of execution price), *slippage_fixed* (slippage as a fixed cost per unit traded), *brokerage_fixed*
+(fixed brokerage per trade), *brokerage_perc* (brokerage as a percentage of traded value) and *tax_perc* (tax as a percentage of traded value). For options-based trading, we can additionally specify an *options_config*, with sub-keys *ttm* (time-to-maturity) and *imp_vol* (implied vol) which would be used to 
 compute an approximate ATM options price. Slippages and taxes would then be computed on this approximate price.
 
-Once the costs are correclty documented in the config file, we would also addiitonally require to switch a toggle ON or OFF depending upon whether we require these charges to be applied in our backtesting or optimization. This is controlled via the **add_transaction_costs** parameter that is to be passed along-with other strategy parameters
+Once the costs are correclty documented in the config file, we would also addiitonally require to switch a toggle ON or OFF depending upon whether we require these charges to be applied in our backtesting or optimization. This is controlled via the *add_transaction_costs* parameter that is to be passed along-with other strategy parameters
 into the strategy object. This parameter can take a boolean as its input
 
 #### Synthetic Options
@@ -262,25 +262,25 @@ The setup needs to be carried out in the [synth_options_config](https://github.c
 The global specification mapping can be found in the **OPTION_TRADE_CHOICES** variable while the asset specification mapping can be found in the **TICKER_TO_OPT_CONFIG** variable. 
 
 Each asset specification contains certain components that need to be specified:- 
-- The **imp_vol** which is an implied vol floor to be applied to the underlying. 
-- The **rr** which is the risk-free rate and 
-- The **strike_gap** which is the rupee-value gap between adjacent strikes that are 
+- The *imp_vol* which is an implied vol floor to be applied to the underlying. 
+- The *rr* which is the risk-free rate and 
+- The *strike_gap* which is the rupee-value gap between adjacent strikes that are 
 openly traded in the market. 
 
 The global specification contains another set of components that need to be specified:-
-- The **short_options_or_fut** parameter. A value equal to True would mean that we would like to run our synthetic options backtest on futures or short options. The reason these two are clibbed together is the margin requirement which is almost comparable between the two
- - **is_fut** is used when the value of the above parameter is True. This is to ensure that we end up computing the correct synthetic price during backtesting. A parameter value of False would ensure that we correctly incorporate theta-decay and convexity adjustments to our
+- The *short_options_or_fut* parameter. A value equal to True would mean that we would like to run our synthetic options backtest on futures or short options. The reason these two are clibbed together is the margin requirement which is almost comparable between the two
+ - *is_fut* is used when the value of the above parameter is True. This is to ensure that we end up computing the correct synthetic price during backtesting. A parameter value of False would ensure that we correctly incorporate theta-decay and convexity adjustments to our
 futures price
-- **short_opt_lev** is the approximate leverage on capital we obtain when we trade futures or short options. This is applicable only when the **short_options_or_fut** parameter is set to True. For example a leverage of 5 would mean that a Rs 100000 margin would ensure that we could 
+- *short_opt_lev* is the approximate leverage on capital we obtain when we trade futures or short options. This is applicable only when the *short_options_or_fut* parameter is set to True. For example a leverage of 5 would mean that a Rs 100000 margin would ensure that we could 
 obtain a total notional exposure via futures or short options of Rs 500000
-- The **imp_vol_mult** which is a multiplier that can be applied to the floor which is specified in the above asset specification.
-- The **vol_premium** which is the volatility premium that would be added
-- **max_lev_alloc** is only applicable for long options i.e. when the **short_options_or_fut** parameter is set to False. This parameter controls the fraction of our total capital that we allocate to buying options. For example a value of 0.05 would mean that we only set aside 5% of
+- The *imp_vol_mult* which is a multiplier that can be applied to the floor which is specified in the above asset specification.
+- The *vol_premium* which is the volatility premium that would be added
+- *max_lev_alloc* is only applicable for long options i.e. when the *short_options_or_fut* parameter is set to False. This parameter controls the fraction of our total capital that we allocate to buying options. For example a value of 0.05 would mean that we only set aside 5% of
 our capital to buying options. The reason why this parameter is necessary is because a very large allocation would almost always ensure that we run a very high risk of ruin as the probability of an OTM option going to 0 at expiry is high. 
-- **strike_gap_mult** is the distance away from the ATM that we would like our synthetic prices to be computed. This can take both negative (OTM) and positive (ITM) values. This integer value is multiplied by the **strike_gap** parameter to get the actual distance in rupees for a given underlying.  
+- *strike_gap_mult* is the distance away from the ATM that we would like our synthetic prices to be computed. This can take both negative (OTM) and positive (ITM) values. This integer value is multiplied by the *strike_gap* parameter to get the actual distance in rupees for a given underlying.  
 on top of the 30-day historical vol. 
 
-Once the specifications are filled-in correctly in the config file, we would then need to toggle a switch to turn ON or OFF the synthetic options feature. This parameter is called **use_synthetic_options** and is to be passed-in just as any other strategy parameter.
+Once the specifications are filled-in correctly in the config file, we would then need to toggle a switch to turn ON or OFF the synthetic options feature. This parameter is called *use_synthetic_options* and is to be passed-in just as any other strategy parameter.
 One can also publish various relevant metrics in the -algo file, such as the prevailing call and put strikes that was traded along-with its option type and current price so that the user can run a manual debug and ensure that the syuunthetic options usage is correct
 
 ## Data format
